@@ -1,0 +1,95 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{esvect}
+
+
+\DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
+
+\title{Pattern Analysis - Lecture notes}
+\author{Sebastian Rietsch}
+
+\begin{document}
+\maketitle
+\section{Density Estimation}
+Let \(p(\vec{x})\) denote a probability density function (pdf) then:
+\begin{enumerate}
+    \item
+        \(p(\vec{x}) \geq 0 \)
+    \item
+        \(\int\limits_{-\infty}^{+\infty} p(\vec{x}) d\vec{x} = 1 \)
+    \item
+        \(p(\vec{a} \leq \vec{x} \leq \vec{b}) = \int\limits_{\vec{a}} p(\vec{x}) d\vec{x} \)
+\end{enumerate}
+The task of density estimation is to obtain from a set of discrete samples/measurements a continuos representation of the underlying pdf.
+
+\subsection{Parametric density estimation}
+Make an assumption about the underlying distribution and determine the best fitting distribution parameters from the data. (MLE, Maximum a Positriori Estimation)
+
+\subsection{Non-parametric density estimation: Parzen-Rosenblatt estimator}
+The Parzen window estimator interpolates the pdf from the observations in the neighborhood of a position \(\vec{x}\), using an appropriate kernel (or window) function.
+
+\subsubsection*{Short derivation}
+Let \(p_R\) denote the probabilty that \(\vec{x}\) lies within region \(R\): \(p_R = \int_R p(\vec{x}) d\vec{x}\).\\
+Now assume that \(p(\vec{x})\) is approximately constant in \(R\).
+ \[\Rightarrow p_R = p(\vec{x}) \underbrace{\int_R d\vec{x}}_\text{volume of R}\]\\
+For example let \(R\) be a d-dimensional hypercube with side length \(h\), then its volume is \(h^d\) and \(p_R \approx p(\vec{x}) \cdot V_R\).
+
+Let \(p_R = \frac{k_R}{N}\), i.e. we determine the probability of making an observation in region \(R\) by counting the samples in \(R\) \((k_R)\) and dividing by the total number of samples. (\(p_R\) is also called the "relative frequency")\\
+\[\Rightarrow p(\vec{x}) = \frac{p_R}{V_R} = \frac{k_R}{V_R \cdot N}\]\\
+Let us write the Parzen window estimator as a function of a kernel \(k(\vec{x},\vec{x_i})\), then
+\[p(\vec{x}) = \frac{1}{Nh^d} \cdot \sum\limits_{i=1}^{N} k(\vec{x}, \vec{x_i})\]
+and
+\[k(\vec{x}, \vec{x_i}) = \begin{cases} 
+    1 & \frac{|\vec{x}_{i,k} - \vec{x}_k|}{h} \leq \frac{1}{2} \\ 0 & \text{otherwise}
+\end{cases}\].\\
+In any dimension \(k\),  \(\vec{x_i}\) and \(\vec{x}\) are not farther apart than \(0.5\cdot h\).
+
+Equivalently, if we use a (multivatiate) Gaussian kernel:
+\[ k(\vec{x}, \vec{x_i}) = \underbrace{\frac{1}{(2\pi)^d |\Sigma|}}_{\text{Volume of Gaussian}} e^{-(\vec{x} - \vec{x_i})^T \Sigma^{-1} (\vec{x} - \vec{x_1})} \;\; \Rightarrow \;\; p(\vec{x}) = \frac{1}{N} \sum\limits_{i=1}^{N} k(\vec{x}, \vec{x_i})\]
+
+\subsubsection*{A note on application}
+\begin{itemize}
+    \item
+        General remark: we obtain a continous pdf, i.e. density estimation converts a list of measurements to a statistical model
+    \item
+        One specific example: we can sample from a pdf. This means that we have a principled way of generating new/more ... data that behaves/looks similarly to the observations
+\end{itemize}
+
+\subsubsection*{Question: How can we (practically) sample from a pdf?}
+\begin{enumerate}
+    \item
+        Convert pdf into cumulative density function (cdf) (\( cdf[i] = cdf[i-1] + pdf[i]\))
+    \item
+        Draw a uniformly distributed number (\(r\)) between 0 and 1
+    \item
+        Our sampled value is \(x\), where \(cdf[x] = r\)  
+\end{enumerate}
+
+\subsubsection*{How can we determine good window size?}
+Let's do a Maximum Likelihood with cross validation. e.g. leave-one-sample-out cross-validation (CV).
+\[ p_{h, N-1}^j (\vec{x}) = \frac{1}{N h^d} \sum_{i=1, i \neq j}^{N} k(\vec{x}, \vec{x_i}) \] \\
+We estimate the pdf from all samples except \(\vec{x_j}\). \(\vec{x_j}\) will be used to evaluate the quality of the pdf using window size h.
+\begin{align*}
+\hat{h} &= \argmax_h \mathcal{L}(h) = \argmax_h \prod_{j=1}^{N} p_{h, N-1}^j (\vec{x_j})\\
+&= \argmax_h \sum\limits_{j=1}^{N} log \; p_{h, N-1}^j (\vec{x_j})
+\end{align*}
+The position of the maximum (when using log-likelihood) does not change, because the logarithm is a strictily monotonic function.
+
+\section{Mean Shift Algorithm (Comaniciu, Meer)}
+\textbf{Purpose}: Find maxima in a pdf without actually performing a full density estimation (e.g. for Clustering (maximum is cluster center), segmentation, ...)
+
+Assume that we have a full density estimator. Then
+\[p(\vec{x}) = \frac{1}{N} \sum\limits_{i=1}^N k_h (\vec{x}, \vec{x_i}) \].\\
+\textbf{Idea}: Maxima can be found where the gradient of the pdf is zero.\\
+\textbf{Problems}:
+\begin{itemize}
+    \item
+        It may be the case, that a zero gradient is just between two finer maxima
+    \item
+        The kernel size indirectly controls the number of identified maxima
+\end{itemize}
+\end{document}
