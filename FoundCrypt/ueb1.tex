@@ -1,0 +1,97 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+
+\title{Exercise Sheet 1}
+\begin{document}
+\maketitle
+
+\section{Exercise 1-1}
+
+\noindent 
+\textbf{Theorem:} The construction of stubborn links from fair lossy links is correct
+
+\noindent
+\textbf{Assume:} process $p_i$ and $p_j$, message $m$, $p_i$ sends $m$ to $p_j$, fair lossy link between them, stubborn link algorithm
+
+\noindent
+\textbf{Proof:} SL1 and SL2 follow
+
+\begin{enumerate}
+    \item SL1
+
+    Assume: $p_i$ does not crash, $p_j$ correct
+
+    Proof: $p_j$ delivers $m$ an infinite number of times
+    \begin{enumerate}
+        \item
+            \textit{flp2pSend} gets triggered infinitly often when \textit{sp2pSend}
+        \item
+            From FL1 and the assumptions follows that $m$ is delivered infinitly often by $p_j$ (\textit{flp2pDeliver} is triggered infinitly often, and because of that \textit{sp2pDeliver} also)
+        \item
+            Q.E.D.
+    \end{enumerate} 
+    \item SL2
+        \begin{enumerate}
+            \item
+                FL3
+            \item
+                Q.E.D.
+        \end{enumerate}
+    \item Q.E.D.
+\end{enumerate}
+
+\section{Exercise 1-2}
+
+\noindent 
+\textbf{Theorem:} The construction of reliable links from stubborn links is correct
+
+\noindent
+\textbf{Assume:} process $p_i$ and $p_j$, message $m$, $p_i$ sends $m$ to $p_j$, stubborn link between them, reliable link algorithm
+
+\noindent
+\textbf{Proof:} PL1, PL2, PL3 follow
+\begin{enumerate}
+    \item
+        PL1
+
+        Assume: $p_i$ and $p_j$ correct
+
+        Proof: every message sent by $p_i$ to $p_j$ is eventually delivered by $p_j$
+        \begin{enumerate}
+            \item
+                SL1 ensures that \textit{sp2pDeliver} is triggered infinitly often
+            \item
+                delivered list does not contain $m$ if it wasn't delivered already before
+            \item
+                \textit{pp2pDeliver} gets triggered on first \textit{sp2pDeliver}
+            \item
+                Q.E.D.
+        \end{enumerate}
+    \item
+        PL2
+        \begin{enumerate}
+            \item
+                SL1 ensures that \textit{sp2pDeliver} is triggered infinitly often
+            \item
+                after \textit{pp2pDeliver} got triggered, $m$ gets appended to delivered
+            \item
+                as a result \textit{pp2pDeliver} can't be triggered more then once
+            \item
+                Q.E.D.
+        \end{enumerate}
+    \item
+        PL3
+        \begin{enumerate}
+            \item
+                SL2
+            \item
+                Q.E.D.
+        \end{enumerate}
+    \item Q.E.D.
+
+\end{enumerate}
+
+\end{document}
