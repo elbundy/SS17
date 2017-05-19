@@ -19,7 +19,7 @@ CornerDetector::CornerDetector(cv::Mat &img, int blockSize): img(img)
 /* Function to detect corners in given image */
 std::vector<cv::KeyPoint> CornerDetector::detectFeatures()
 {
-    //Compute x and y gradients
+    //Compute x and y gradients via Sobel filter convolution
     Mat grad_x, grad_y, img_gray;
     cvtColor(img, img_gray, COLOR_BGR2GRAY);
     Sobel(img_gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
@@ -37,11 +37,11 @@ std::vector<cv::KeyPoint> CornerDetector::detectFeatures()
     prod_yy = grad_y.mul(grad_y);
 
     //Compute the sums of the products of derivatives at each pixel
-    //Equivalently, apply unnormalized boxfilter
+    //In this case, Gaussian filter was used (as mentioned in Szeliski)
     Mat prod_xx_sum, prod_xy_sum, prod_yy_sum;
-    boxFilter(prod_xx, prod_xx_sum, CV_32F, Size(blockSize, blockSize), Point(-1,-1), false);
-    boxFilter(prod_xy, prod_xy_sum, CV_32F, Size(blockSize, blockSize), Point(-1,-1), false);
-    boxFilter(prod_yy, prod_yy_sum, CV_32F, Size(blockSize, blockSize), Point(-1,-1), false);
+    GaussianBlur(prod_xx, prod_xx_sum, Size(blockSize, blockSize), 0, 0);
+    GaussianBlur(prod_xy, prod_xy_sum, Size(blockSize, blockSize), 0, 0);
+    GaussianBlur(prod_yy, prod_yy_sum, Size(blockSize, blockSize), 0, 0);
 
     //Compute R = Det(H) - k(Trace(H))^2
     Mat R = Mat::zeros(img.size(), CV_32F);
