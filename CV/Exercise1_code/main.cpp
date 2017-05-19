@@ -25,7 +25,7 @@ int main(int argc, char** argv )
 
     //load two images for feature matching
     Mat img;
-    img = imread("house.jpg", CV_LOAD_IMAGE_COLOR);
+    img = imread("checker.jpg", CV_LOAD_IMAGE_COLOR);
 
     //Show image
     namedWindow("Image", WINDOW_AUTOSIZE);
@@ -39,7 +39,7 @@ int main(int argc, char** argv )
     //Feature Detection
     //detect features in your images
     //use your own implementation of a corner detector
-    CornerDetector c(img, 7);
+    CornerDetector c(img, 2);
 
     std::vector<cv::KeyPoint> keyPoints;
     keyPoints = c.detectFeatures();

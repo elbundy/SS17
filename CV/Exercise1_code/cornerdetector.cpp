@@ -25,6 +25,11 @@ std::vector<cv::KeyPoint> CornerDetector::detectFeatures()
     Sobel(img_gray, grad_x, CV_32F, 1, 0, 3, 1, 0, BORDER_DEFAULT);
     Sobel(img_gray, grad_y, CV_32F, 0, 1, 3, 1, 0, BORDER_DEFAULT);
 
+    //namedWindow("Image", WINDOW_AUTOSIZE);
+    //imshow("Grad X", grad_x);
+    //imshow("Grad Y", grad_y);  
+    //waitKey(0);
+
     //Compute products of derivatives
     Mat prod_xx, prod_yy, prod_xy;
     prod_xx = grad_x.mul(grad_x);
@@ -41,43 +46,42 @@ std::vector<cv::KeyPoint> CornerDetector::detectFeatures()
     //Compute R = Det(H) - k(Trace(H))^2
     Mat R = Mat::zeros(img.size(), CV_32F);
     Mat H = Mat::zeros(2, 2, CV_32F);
-    float k = 0.05;
-    for(int i = 0; i<img.rows; i++){
-        for(int j = 0; j<img.cols; j++){
+    float k = 0.1;
+    //at(row, col) indexing
+    //in opencv, row is y coordinate, col is x coordinate
+    for(int x = 0; x<img.cols; x++){
+        for(int y = 0; y<img.rows; y++){
             // ad - bc
-            float det = prod_xx_sum.at<float>(i,j) * prod_yy_sum.at<float>(i,j) - prod_xy_sum.at<float>(i,j) * prod_xy_sum.at<float>(i,j);
+            float det = prod_xx_sum.at<float>(y,x) * prod_yy_sum.at<float>(y,x) - prod_xy_sum.at<float>(y,x) * prod_xy_sum.at<float>(y,x);
             // a + d
-            float trace = prod_xx_sum.at<float>(i,j) + prod_yy_sum.at<float>(i,j);
-            R.at<float>(i,j) = det - k * trace*trace;
+            float trace = prod_xx_sum.at<float>(y,x) + prod_yy_sum.at<float>(y,x);
+            R.at<float>(y,x) = det - k * trace*trace;
         }
     } 
-    namedWindow("Image", WINDOW_AUTOSIZE);
-    imshow("Image", R);
-    waitKey(0);
-    
+   
     //Threshold
     float thresh = 10000.0;
-    for(int i = 0; i<img.rows; i++){
-        for(int j = 0; j<img.cols; j++){
-            if (R.at<float>(i,j) > thresh)
+    for(int x = 0; x<img.cols; x++){
+        for(int y = 0; y<img.rows; y++){
+            if (R.at<float>(y,x) > thresh)
             {
                 //Non-maximum suppression
                 int max_x, max_y;
                 float max = 0.0;
-                for(int x = -3; x<4; x++){
-                    for(int y = -3; y<4; y++){
-                        if(i+x >= 0 && j+y >=0 && i+x < img.rows && j+y <img.cols){
-                            if (R.at<float>(i+x,j+y) > max){
-                                max_x = x;
-                                max_y = y;
-                                max = R.at<float>(i+x, j+y);
+                for(int x_off = -5; x_off<6; x_off++){
+                    for(int y_off = -5; y_off<6; y_off++){
+                        if(x+x_off >= 0 && y+y_off >=0 && x+x_off < img.cols && y+y_off < img.rows){
+                            if (R.at<float>(y+y_off,x+x_off) > max){
+                                max_x = x_off;
+                                max_y = y_off;
+                                max = R.at<float>(y+y_off, x+x_off);
                             } 
                         } 
                     }
                 }
 
                 if (max_x == 0 && max_y == 0){
-                    KeyPoint k(i,j,1);
+                    KeyPoint k(x,y,1);
                     keyPoints.push_back(k);
                 }
             }
