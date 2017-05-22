@@ -1,0 +1,50 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{amsmath}
+
+\title{Exercise Sheet 1}
+\begin{document}
+\maketitle
+
+\section{Problem 1.1}
+1.)
+\begin{itemize}
+    \item
+        $P(Down|F = Age_{25}) = \frac{1}{1250}$
+    \item
+        $P(Down|F = Age_{43}) = \frac{1}{50}$
+    \item
+        $P(Pos|\lnot Down) = P(\lnot Pos | Down) = \frac{1}{100}$
+\end{itemize}
+2.)
+\begin{align*}
+    P(Down | F = Age_{25}, Pos) &= \frac{P(Down \land (F = Age_{25} \land Pos))}{P( F = Age_{25} \land Pos)}\\
+    &= \frac{P(Down) \cdot P(F = Age_{25} \land Pos | Down))}{P( F = Age_{25} \land Pos)}
+\end{align*}
+
+\section{Problem 1.2}
+...
+
+\section{Problem 1.3}
+It is assumed that $A, B, C$ are statistically independent.
+\begin{align*}
+    P(A \lor B \lor C) &= P(A \lor (B \lor C)) = P(A) + P(B \lor C) - P(A \land (B \lor C)) \\
+    &= P(A) + P(B) + P(C) - P(B \land C) - P(A \land (B \lor C))\\
+    &= P(A) + P(B) + P(C) - P(B \land C) - (P(A) \cdot P(B \lor C \;|\; A))\\
+    &= P(A) + P(B) + P(C) - P(B \land C) - (P(A) \cdot P(B \lor C))\\
+    &= P(A) + P(B) + P(C) - P(B \land C) - (P(A) \cdot (P(B) + P(C) - P(B \land C)))\\
+    &= P(A) + P(B) + P(C) - P(B \land C) - (P(A\land B) + P(A \land C) - P(A \land B \land C))\\
+    &= P(A) + P(B) + P(C) - P(B \land C) - P(A\land B) - P(A \land C) + P(A \land B \land C)
+\end{align*}
+
+\section{Problem 1.4}
+1) 
+\begin{align*}
+    P((A \land B) \lor (C \land D) \lor (E \land F)) &= \\
+    &= P(A \land B) + P(C \land D) + P(E \land F) - P(C \land D \land E \land F) - P(A \land B \land C \land D) - P(A \land B \land E \land F) + P(A \land B \land C \land D \land E \land F)
+\end{align*}
+
+\end{document}
