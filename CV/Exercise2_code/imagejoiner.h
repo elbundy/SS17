@@ -32,9 +32,9 @@ private:
     //list of images
     std::vector<cv::Mat> imageList;
 
-    //TODO
     //add required members
     std::vector<cv::Mat> transformationMats;
+    std::vector<cv::Rect> imageCorners;
 
 };
 
