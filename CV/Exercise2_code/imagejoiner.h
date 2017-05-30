@@ -34,6 +34,7 @@ private:
 
     //TODO
     //add required members
+    std::vector<cv::Mat> transformationMats;
 
 };
 
