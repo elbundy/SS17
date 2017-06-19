@@ -175,6 +175,11 @@ int main(int argc, char** argv )
     std::vector<uchar> inliers(points1.size(),0);
     std::fill(inliers.begin(), inliers.end(), 1);
     Mat F = cv::findFundamentalMat(points1, points2, FM_RANSAC, distance, confidence);
+    std::vector<cv::Point3d> homoPoints1;
+    std::vector<cv::Point3d> homoPoints2;
+
+    cv::convertPointsToHomogeneous(points1, homoPoints1);
+    cv::convertPointsToHomogeneous(points2, homoPoints2);
 
     /*******************************************************************/
 
