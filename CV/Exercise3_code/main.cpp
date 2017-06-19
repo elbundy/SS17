@@ -55,10 +55,10 @@ void extractCameraFromE(const Mat& E, Mat& R, Mat& t, int solution = 0){
 //transform 3D point to check if it ends up infront of both cameras
 bool checkDepth(Point2f point1, Point2f point2, const Mat& R, const Mat& t){
     //calculate z component of point1
-    std::vector<cv::Point2f> cam0pnts;
-    cam0pnts.push_back(point1);
     std::vector<cv::Point2f> cam1pnts;
-    cam1pnts.push_back(point2);
+    cam1pnts.push_back(point1);
+    std::vector<cv::Point2f> cam2pnts;
+    cam2pnts.push_back(point2);
 
     cv::Mat_<double> projectionMat1 = cv::Mat_<double>::zeros(3,4);
     projectionMat1(0,0) = 1.0;
@@ -72,7 +72,7 @@ bool checkDepth(Point2f point1, Point2f point2, const Mat& R, const Mat& t){
     //std::cout << projectionMat2 << std::endl;
     
     cv::Mat pnts3D(4, 1, CV_64F);
-    cv::triangulatePoints(projectionMat1, projectionMat2, cam0pnts, cam1pnts, pnts3D);
+    cv::triangulatePoints(projectionMat1, projectionMat2, cam1pnts, cam2pnts, pnts3D);
     pnts3D.convertTo(pnts3D, CV_64F); //????? bug
 
     //transform 3D point / depth
@@ -175,11 +175,23 @@ int main(int argc, char** argv )
     std::vector<uchar> inliers(points1.size(),0);
     std::fill(inliers.begin(), inliers.end(), 1);
     Mat F = cv::findFundamentalMat(points1, points2, FM_RANSAC, distance, confidence);
-    std::vector<cv::Point3d> homoPoints1;
-    std::vector<cv::Point3d> homoPoints2;
+
+    /* Fundamental matrix test
+    std::vector<cv::Point3f> homoPoints1;
+    std::vector<cv::Point3f> homoPoints2;
 
     cv::convertPointsToHomogeneous(points1, homoPoints1);
     cv::convertPointsToHomogeneous(points2, homoPoints2);
+
+    for(int i = 0; i < points1.size(); i++){
+        cv::Mat p1 = cv::Mat(homoPoints1[i], false);
+        p1.convertTo(p1, CV_64F);
+        cv::Mat p2 = cv::Mat(homoPoints2[i], false);
+        p2.convertTo(p2, CV_64F);
+        cv::Mat mult = p2.t() * F * p1;
+        std::cout << mult << std::endl;
+    }
+    */
 
     /*******************************************************************/
 
@@ -224,8 +236,10 @@ int main(int argc, char** argv )
     //    | 0   0   1  |
     // f: focal length, x/y: principal point offset, s: skew
     //
+    //
     // from de.mathworks:
     // f_x = F (in mm) / pixel size
+    //
     // from answers.opencv
     //// focal_length_in_pixel = (focal_length_mm / sensor_width_mm)*img_width in pixels
     double focal = 35.0;
@@ -234,21 +248,22 @@ int main(int argc, char** argv )
     double res_height = 1536.0;
 
     double f_x, f_y;     
-    f_x = (focal/sensor);
-    f_y = (focal/sensor);
+    f_x = focal/sensor;
+    f_y = focal/sensor;
 
     double x_0, y_0;
     x_0 = res_width / 2;
     y_0 = res_height / 2;
 
     //double s = 0.0;
+
     Mat_<double> K = Mat_<double>::zeros(3, 3);
     K(0,0) = f_x;
-    //K(0,1) = s;
     K(0,2) = x_0;
     K(1,1) = f_y;
     K(1,2) = y_0;
     K(2,2) = 1;
+    //K(0,1) = s;
     //std::cout << K << std::endl;
 
     /*******************************************************************/
@@ -259,6 +274,24 @@ int main(int argc, char** argv )
     //E = K'^T F K (here: K' = K), K is the intrinsic camera matrix
 
     Mat E = K.t() * F * K;
+
+    /* Essential matrix test
+    std::vector<cv::Point3f> homoPoints1;
+    std::vector<cv::Point3f> homoPoints2;
+
+    cv::convertPointsToHomogeneous(points1, homoPoints1);
+    cv::convertPointsToHomogeneous(points2, homoPoints2);
+
+    for(int i = 0; i < points1.size(); i++){
+        cv::Mat p1 = cv::Mat(homoPoints1[i], false);
+        p1.convertTo(p1, CV_64F);
+        cv::Mat p2 = cv::Mat(homoPoints2[i], false);
+        p2.convertTo(p2, CV_64F);
+        //std::cout <<(K.inv()*p2) << std::endl;
+        cv::Mat mult = (K.inv()*p2).t() * E * (K.inv() * p1);
+        std::cout << mult << std::endl;
+    }
+    */
 
     /*******************************************************************/
 
