@@ -1,0 +1,67 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{amsmath}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+
+\usetikzlibrary{positioning,shapes,arrows}
+
+\newcolumntype{M}[1]{D{.}{.}{1.#1}}
+
+
+\title{Exercise Sheet 3}
+\begin{document}
+\maketitle
+
+\section*{Problem 3.1}
+3)
+
+0.04034
+
+\noindent4)
+\begin{itemize}
+    \item
+        Probability of zombieapocalype of $0.00666$ seems justified
+    \item
+        If there is a zombieapocalyse, the probabiltity of no beer at berg is probably 1 (except bavarian zombies still have bear breawing skills)
+    \item
+        The probability that there is no beer at berg when the TechFak gets an Nobel price could be smaller then without it
+    \item
+        If there is a zombieapocalypse, there probably wont be a new university in Nuremberg (except there exist scholar zombies)
+    \item
+        When the TechFak gets an Nobel price, there probably wont be a new univercity in Nuremberg, else maybe (20\%)
+    \item
+        If there is no beer at berg, the TechFak will move to Nuremberg with a probability of 1 (seems justified)
+    \item
+        A Nobel price will make it less probable that the Techfak moves to Nuremberg
+\end{itemize}
+
+$P(zombieapocalypse | NoBeerAtBerg) = 0.87123$ (Holy shit, we're dooomed!!!)
+
+\section*{Problem 3.2}
+\begin{itemize}
+    \item
+        action $a$: I am going to play with $x$ amount of money
+    \item
+        evidence $e$: Hey, I am able to play
+    \item
+        $s' = (n, x)$
+    \item
+        $U(s') = (2^n - x)$
+    \item
+        $P(R(a) = (n,x) | a,e) = 2^{-n}$
+    \item
+        $EU(a|e) = \sum_{s'} P(R(a) = s' | a,e) \cdot U(s')$
+    \item
+        $EU(a = x|e) = \sum_{n} 2^{-n} \cdot (2^n - x) = \sum_{n}1 - x 2^{-n} = 0$
+    \item
+        Solve for x... But how?
+\end{itemize}
+
+\end{document}

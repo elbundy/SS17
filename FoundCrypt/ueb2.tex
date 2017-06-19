@@ -1,0 +1,52 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+
+\title{Exercise Sheet 2}
+\begin{document}
+\maketitle
+
+\section{Exercise 2-1}
+1)
+\begin{enumerate}
+    \item
+        $p_1$ invokes best effort broadcast and sends $n$ messages
+    \item
+        all the other process deliver and append message to from list
+    \item
+        $p_1$ crashes
+    \item
+        all the other processes (n-1) resend $n$ messages
+    \item
+        $p_2$ crashes
+    \item
+        all the other prcoesses (n-2) resend $n$ message
+    \item
+        ...
+\end{enumerate}
+
+\noindent 2)
+\begin{enumerate}
+    \item
+        $\mathcal{O}(n + \sum_{m=1}^{n} n \cdot n-m) = \mathcal{O}(\frac{1}{2}(n-1)n^2+n) = \mathcal{O}(n^3)$
+\end{enumerate}
+
+\noindent 3)
+Yes because it could happen that the failure detector gives us an arbitrary number of false positives, which results in an arbitray number of resends.
+
+\section{Exercise 2-2}
+1)
+\begin{enumerate}
+    \item
+        $p_1$ invoces uniform reliable broadcast, sends $n$ times message $m$
+    \item
+        $p_2$ to $p_n$ deliver $m$ and reinvoke best-effort broadcast $\rightarrow$ $(n-1) \cdot n$ messages get sent
+\end{enumerate}
+$n + (n-1) \cdot n = n^2$
+
+\noindent 2)
+
+Eventhough all processes are correct and the bebDeliver event only got invoked on a subset of these processes (so only some of the processes received the message) it could happen that the failure detector temporarily removes the processes from the correct list, that didn't receive the message and as result, the urbDeliver event gets triggered.
+\end{document}
