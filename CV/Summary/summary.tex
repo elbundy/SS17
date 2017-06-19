@@ -1,0 +1,150 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{esvect}
+
+
+\DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
+
+\title{Computer Vision - Summary}
+\author{Sebastian Rietsch}
+
+\begin{document}
+\maketitle
+\section*{4.1.1 Feature detectors (Harris corner detector)}
+\begin{itemize}
+    \item
+        Simplest possible matching criterion for comparing two image patches: (weighted) summed square difference
+        $$E_{WSSD}(u) = \sum_i w(x_i) [I_1 (x_i + u) - I_0(x_i)]^2$$
+        where $I_0$ and $I_1$ are the two images being compared, $u = (u,v)$ is the displacement vector
+    \item
+        Idea: compare an image patch against itself, which is known as an \textit{auto-correlation function}
+        $$E_{AC}(\Delta u) = \sum_i w(x_i) [I_0(x_i + \Delta u) - I_0(x_i)]^2$$
+    \item
+        Using Taylor Series expansion $I_0(x_i + \Delta u) \approx I_0(x_i) + \Delta I_0(x_i) \cdot \Delta u$ we can approximate the auto-correlation function as
+        $$E_{AC}(\Delta u) = \dots = \sum_i w(x_i) [\Delta I_0(x_i) \cdot \Delta u]^2 = \Delta u^T A \Delta u$$
+        where $A = w * \begin{pmatrix} I_x^2 & I_x I_y \\ I_x I_y & I_y^2  \end{pmatrix}$ ($I_x, I_y$ are gradients in $x$ and $y$ direction)
+    \item
+        Compute $I_x, I_y$ with $[-2, -1, 0, 1, 2]$ filter or derivatives of Gaussians. Use Gaussian as weighting kernel $w$.
+    \item
+        Auto-correlation matrix contains useful information. Two ways to extract information:
+        \begin{enumerate}
+            \item
+                Both eigenvalues big $\Rightarrow$ corner, one eigenvalue big $\Rightarrow$ edge
+
+            \item
+                Compute $det(A) - \alpha trace(A)^2 = \lambda_0 \lambda_1 - \alpha (\lambda_0 + \lambda_1)^2$. Threshold and non-maximum supression.
+        \end{enumerate}
+    \item
+        Algorithm:
+        \begin{enumerate}
+            \item
+                Compute the horizontal and vertical derivatives of the image $I_x$ and $I_y$ by convolving the original image with derivatives of Gaussians
+            \item
+                Compute the three images corresponding to the outer products of these gradients ($I_x^2, I_y^2, I_x I_y$)
+            \item
+                Convolve each of these images with a larger Gaussian
+            \item
+                Compute a scalar interest measure using one of the formulas discussed above
+            \item
+                Find local maxima above a certain threshold and report them as detected feature point locations.
+                
+        \end{enumerate}
+
+\end{itemize}
+
+
+\section*{Multi View Geometry: Chapter 9: Epipolar Geometry and the Fundamental Matrix}
+\subsection*{Epipolar geometry}
+\begin{itemize}
+    \item
+        \textit{Epipolar plane} $\pi$: formed by camera centers $c, c'$ and space point $X$ (or by camera centers and one image point $x$)
+    \item
+        Image points $x$ and $x'$ lie on epipolar plane (they are coplanar)
+    \item
+        Suppose we know $x$ and $x'$ is unknown: $x'$ must lie on the line of intersection $l'$ of $\pi$ with the second image plane
+    \item
+        $l'$ is the so-called \textit{epipolar line}
+    \item
+        intersection of the line joining the camera centers is called \textit{epipole}
+\end{itemize}
+
+\subsection*{Fundamental matrix $F$}
+\begin{itemize}
+    \item
+        $3 \times 3$ matrix
+    \item
+        Rank 2
+    \item
+        2 points $x$ and $x'$ $\Rightarrow$ $x' F x = 0$
+    \item
+        Epipolar line is the projection in the second image of the ray from the point $x$ through the camera center $c$ of the first camera $\Rightarrow$ there is a map $x \rightarrow l'$
+\end{itemize}
+\subsubsection*{Algebraic derivation}
+\begin{itemize}
+    \item
+        Given: two camera projection matrices $P, P'$
+    \item
+        The ray back-projected from $x$ by $P$ is obtained by solving $PX = x$. Solution: $X(\lambda) = P^{+} x + \lambda C$, where $P^{+}$ is the pseudo-inverse of $P$ and $C$ its null-vector, namely the camera center defined by PC = 0
+    \item
+        Two points on the ray are $P^{+}x$ $(\lambda = 0)$ and the first camera center $C$ $(\lambda = \infty)$
+    \item
+        Second camera images these points at $P'P^{+}x$ and $P'C$
+    \item
+        The epipolar line is the line joining these two projected points, namely $l' = (P'C) \times (P'P^{+}x)$
+    \item
+        $P'C$ is the epipole in the second image and may be denoted as $e'$. Thus $l' = [e']_{\times} (P'P^{+})x = Fx$
+    \item
+        $F = [e']_{\times} (P'P^{+})$
+\end{itemize}
+
+Suppose we have to images acquired by cameras with non-coincident centres, then the \textbf{fundamental matrix} $F$ is the unique $3 \times 3$ rank 2 homogeneous matrix which satisfies $x'Fx = 0$ for all corresponding points $x \leftrightarrow x'$. $(l' = Fx)$
+
+\subsection*{The essential matrix}
+\begin{itemize}
+    \item
+        Camera matrix $P = K[R|t]$
+    \item
+        Coordinate: $x = PX$
+    \item
+        Normalized coordinate: $\hat{x} = [R|t] X$ (image of the point $X$ with respect to a camera $[R|t]$ having the identity matrix $I$ as calibration matrix
+    \item
+        Normalized camera matrix: $K^{-1} P = [R|t]$
+    \item
+        ... now
+    \item
+        Consider a pair of normalized camera matrices $P = [I | 0]$ and $P' = [R|t]$
+    \item
+        The fundamental matrix corresponding to the pair of normalized cameras is customarily called the \textit{essential matrix}
+    \item
+        $E = [t]_{\times} R = R[R^{T} t]_{\times}$
+    \item
+        $\hat{x}'^T E \hat{x} = 0$ in terms of normalized image coordinates for corresponding points $x \leftrightarrow x'$
+    \item
+        Subsituting $\hat{x}$ and $\hat{x'}$ gives $\hat{x}'^T K'^{-T} E K^{-1} \hat{x} = 0$, which then leads to $E = K'^T F K$
+\end{itemize}
+
+\subsubsection*{Extraction of cameras from the essential matrix}
+\begin{itemize}
+    \item
+        Assume the first camera matrix is $P = [I|0]$
+    \item
+        Compute SVD of $E$, which is $U diag(1,1,0) V^T$
+    \item
+        $W = \begin{bmatrix}
+            0 & -1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1
+        \end{bmatrix}$
+        $Z = \begin{bmatrix}
+            0 & 1 & 0 \\ -1 & 0 & 0 \\ 0 & 0 & 0
+        \end{bmatrix}$
+    \item
+        There are two possible factorizations $E = SR$, namely $S = UZU^T$ and $R = UWV^T$ or $R = U W^T V^T$
+    \item
+        There are four possible choices for the second camera matrix $P'$
+    \item
+        $P' = [UWV^T | +u_3]$ or $[UWV^T| -u_3]$ or $[UW^TV^T| + u_3]$ or $[UW^TV^T| -u_3]$ where $u_3$ is the last column of $U$
+\end{itemize}
+\end{document}

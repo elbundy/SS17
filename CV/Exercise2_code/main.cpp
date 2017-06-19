@@ -26,9 +26,9 @@ int main(int argc, char** argv )
 
     for (size_t i=0; i<filenames.size(); i++){
         Mat im = imread(filenames[i]);
+        std::cout << filenames[i] << std::endl;
         imageList.push_back(im);
-    }        
-
+    }
 
     for(int i=0; i<imageList.size(); i++){
         //check if all images are loaded correctly
@@ -37,13 +37,11 @@ int main(int argc, char** argv )
             return -1;
         }
 
-        //TODO
         //preprocess (e.g. resize) your images if needed
         //if you use your own images you might want to resize them etc.
         //you might have to play around a bit with settings to get enough good matches for the transformation estimation
     }
 
-    //TODO
     //implement the imageJoiner class!
     //call your image joiner to calculate the transforms between the image pairs and join the images into a single canvas
     //create image joiner instance
@@ -54,6 +52,8 @@ int main(int argc, char** argv )
     Mat result = imageJoiner.joinImages();
 
     //show result
+    namedWindow("Result", CV_WINDOW_NORMAL);
+    setWindowProperty("Result", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     imshow( "Result", result );
     moveWindow("Result", 150, 150);
 
