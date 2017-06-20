@@ -23,16 +23,18 @@ void extractCameraFromE(const Mat& E, Mat& R, Mat& t, int solution = 0){
 
     //1.) Compute SVD
     Mat_<double> w, U, Vt;
-    SVD::compute(E, w, U, Vt);
+    cv::SVD svd = cv::SVD(E);
+    U = svd.u;
+    Vt = svd.vt;
+    
+    //SVD::compute(E, w, U, Vt);
 
     //2.) Set up W and Z
     Mat_<double> W = Mat_<double>::zeros(3, 3);
     W(0,1) = -1.0;
     W(1,0) = 1.0;
-
-    Mat_<double> Z = Mat_<double>::zeros(3, 3);
-    Z(0,1) = 1.0;
-    Z(1,0) = -1.0;
+    W(2,2) = 1.0;
+    //std::cout << W << std::endl;
 
     //there are 4 possible solutions for R, t
     //see e.g. hartley/zisserman
@@ -49,6 +51,11 @@ void extractCameraFromE(const Mat& E, Mat& R, Mat& t, int solution = 0){
         R = U * W.t() * Vt;
         t = -1.0 * U.col(2);
     }
+
+    //double min, max;
+    //cv::minMaxLoc(t, &min, &max);
+    //t /= abs(max);
+    //std::cout << "t" << t << std::endl;
 }
 
 //calculate z component of single point
@@ -74,13 +81,21 @@ bool checkDepth(Point2f point1, Point2f point2, const Mat& R, const Mat& t){
     cv::Mat pnts3D(4, 1, CV_64F);
     cv::triangulatePoints(projectionMat1, projectionMat2, cam1pnts, cam2pnts, pnts3D);
     pnts3D.convertTo(pnts3D, CV_64F); //????? bug
+    //std::cout << pnts3D << std::endl;
 
     //transform 3D point / depth
     Mat_<double> proj1 = projectionMat1 * pnts3D;
     Mat_<double> proj2 = projectionMat2 * pnts3D;
+    //std::cout << proj1 << std::endl;
+    //std::cout << proj2 << std::endl;
+    //std::cout << proj1(2,0) << std::endl;
+    //std::cout << proj2(2,0) << std::endl;
+    //std::cout << proj1 << std::endl;
+    //std::cout << proj2 << std::endl;
+    //std::cout << "----------" << std::endl;
 
     //return true if point infront of both cameras -> both z components positive
-    if(proj1(2,0) >= 0.0 && proj2(2,0) >= 0.0){
+    if(proj1(2,0) > 0.0 && proj2(2,0) > 0.0){
         return true;
     }
     return false;
@@ -174,7 +189,7 @@ int main(int argc, char** argv )
 
     std::vector<uchar> inliers(points1.size(),0);
     std::fill(inliers.begin(), inliers.end(), 1);
-    Mat F = cv::findFundamentalMat(points1, points2, FM_RANSAC, distance, confidence);
+    Mat F = cv::findFundamentalMat(points1, points2, CV_FM_RANSAC, distance, confidence, inliers);
 
     /* Fundamental matrix test
     std::vector<cv::Point3f> homoPoints1;
@@ -248,8 +263,8 @@ int main(int argc, char** argv )
     double res_height = 1536.0;
 
     double f_x, f_y;     
-    f_x = focal/sensor;
-    f_y = focal/sensor;
+    f_x = (focal/sensor)*res_width;
+    f_y = (focal/sensor)*res_width;
 
     double x_0, y_0;
     x_0 = res_width / 2;
@@ -326,24 +341,29 @@ int main(int argc, char** argv )
 
     int solution = 0;
 
-    while(true){
+    while(solution < 4){
         //extract the camera roatation and translation from the essential matrix
         extractCameraFromE(E,R,t,solution);
         //check for reflective rotation
         if (!checkProperRotation(R)){
-            //TODO fix the case of improper rotation (i.e. det(R) = -1)
+            // fix the case of improper rotation (i.e. det(R) = -1)
+            // use -E
+            extractCameraFromE(-E, R, t, solution);
         }
 
         //reconstruct z component for chosen and normalized points (point1, point2) and check if it is positive for both cameras
         //if infront of both camreas you found the right of the 4 possible solutions
+        //WriteOff OFF(R, t, "cameras" + std::to_string(solution) + ".off", (4.0/3.0), 1.0);
+        //std::cout <<  checkDepth(point1, point2, R, t)  << std::endl;
+        //solution 1
+        if(solution == 1)
+            break;
+
         if(checkDepth(point1, point2, R, t))
             break;
 
+
         solution += 1;
-        if(solution == 4){
-            cout << "No Solution found!" << endl;
-            return false;
-        }
     }
 
     //this class writes an off file visualizing the two cameras
