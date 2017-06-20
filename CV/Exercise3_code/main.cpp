@@ -23,11 +23,13 @@ void extractCameraFromE(const Mat& E, Mat& R, Mat& t, int solution = 0){
 
     //1.) Compute SVD
     Mat_<double> w, U, Vt;
+    //SVD::compute(E, w, U, Vt);
+
     cv::SVD svd = cv::SVD(E);
     U = svd.u;
     Vt = svd.vt;
+    //std::cout << U << std::endl;
     
-    //SVD::compute(E, w, U, Vt);
 
     //2.) Set up W and Z
     Mat_<double> W = Mat_<double>::zeros(3, 3);
@@ -51,11 +53,12 @@ void extractCameraFromE(const Mat& E, Mat& R, Mat& t, int solution = 0){
         R = U * W.t() * Vt;
         t = -1.0 * U.col(2);
     }
+    //t.at<double>(0,0) = 0.0;
+    //t.at<double>(1,0) = 0.0;
+    //t.at<double>(2,0) = 0.0;
 
-    //double min, max;
-    //cv::minMaxLoc(t, &min, &max);
-    //t /= abs(max);
-    //std::cout << "t" << t << std::endl;
+    //std::cout << t << std::endl;
+    //std::cout << "-----" << std::endl;
 }
 
 //calculate z component of single point
@@ -81,6 +84,8 @@ bool checkDepth(Point2f point1, Point2f point2, const Mat& R, const Mat& t){
     cv::Mat pnts3D(4, 1, CV_64F);
     cv::triangulatePoints(projectionMat1, projectionMat2, cam1pnts, cam2pnts, pnts3D);
     pnts3D.convertTo(pnts3D, CV_64F); //????? bug
+    //make homogeneous to augmented
+    pnts3D = pnts3D / pnts3D.at<double>(3, 0);
     //std::cout << pnts3D << std::endl;
 
     //transform 3D point / depth
@@ -95,7 +100,7 @@ bool checkDepth(Point2f point1, Point2f point2, const Mat& R, const Mat& t){
     //std::cout << "----------" << std::endl;
 
     //return true if point infront of both cameras -> both z components positive
-    if(proj1(2,0) > 0.0 && proj2(2,0) > 0.0){
+    if(proj1(2,0) >= 0.0 && proj2(2,0) >= 0.0){
         return true;
     }
     return false;
@@ -344,6 +349,7 @@ int main(int argc, char** argv )
     while(solution < 4){
         //extract the camera roatation and translation from the essential matrix
         extractCameraFromE(E,R,t,solution);
+
         //check for reflective rotation
         if (!checkProperRotation(R)){
             // fix the case of improper rotation (i.e. det(R) = -1)
@@ -356,13 +362,9 @@ int main(int argc, char** argv )
         //WriteOff OFF(R, t, "cameras" + std::to_string(solution) + ".off", (4.0/3.0), 1.0);
         //std::cout <<  checkDepth(point1, point2, R, t)  << std::endl;
         //solution 1
-        if(solution == 1)
-            break;
 
         if(checkDepth(point1, point2, R, t))
             break;
-
-
         solution += 1;
     }
 
@@ -372,6 +374,11 @@ int main(int argc, char** argv )
     //a valid result is saved in tranX_rotZ
     //don't worry if your results arent exactly the same, coordinate systems might not match
     //you might need to adjust your translation (multiply -1.0)
+
+    //Is bugged?!?!?!?!
+    //std::cout << t << std::endl;
+    //std::cout << "Hallo?" << std::endl;
+    std::cout << "t: " << t << std::endl;
     WriteOff OFF(R, t, "cameras.off", (4.0/3.0), 1.0);
 
     waitKey(0);
