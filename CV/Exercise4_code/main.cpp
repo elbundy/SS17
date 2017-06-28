@@ -36,10 +36,13 @@ void captureImages( VideoCapture videoStream, vector<Mat> &imageList, int numIma
         //Wait 50ms on key press
         if(waitKey(50) >= 0)
             capture = true;
+
         //Capture
         if(capture){
+            std::cout << "Captured photo!" << std::endl;
             imageList.push_back(frame);
             captured += 1;
+            capture = false;
             if(captured >= numImages){
                 break;
             }
@@ -61,7 +64,7 @@ int main(int argc, char** argv )
     //it will show the video stream and capture images
     //for the calibration experiment with the number of images
     //they should display the chessboard in a varity of views
-    int numberOfImages = 10;
+    int numberOfImages = 2;
     vector<Mat> imageList;
     captureImages(cap, imageList , numberOfImages);
 
@@ -83,18 +86,32 @@ int main(int argc, char** argv )
     Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
     Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
 
-    //TODO
     //implement and call the CameraCalibration class
     //it will return a cameraMatrix and distortion coefficients
     CameraCalibration calibration(imageList, boardSize, squareSize);
+    calibration.calibrate(cameraMatrix, distCoeffs);
 
-    cout << "cameraMatrix: "<< cameraMatrix << endl;
-    cout << "distCoeffs: "<< distCoeffs << endl;
+    cout << "cameraMatrix: " << endl << cameraMatrix << endl;
+    cout << "distCoeffs: "<< endl << distCoeffs << endl;
 
-    //TODO
     //use the camera matrix and distortion coefficients to undistort your camera stream
     //show the original and undistorted stream for qualitative comparision of the estimated parameters
+    for(int i=0; i<imageList.size(); i++){
+        Mat undistorted;
+        cv::undistort(imageList[i], undistorted, cameraMatrix, distCoeffs);
+        
+        Size sz1 = imageList[i].size();
+        Size sz2 = undistorted.size();
+        //int maxWidth = max(sz1.width, sz2.width);
+        int maxHeight = max(sz1.height, sz2.height);
+        Mat imgFused(maxHeight, sz1.width + sz2.width, CV_8UC3);
 
-
+        imageList[i].copyTo(imgFused(Rect(0, 0, sz1.width, sz1.height)));
+        undistorted.copyTo(imgFused(Rect(sz1.width, 0, sz2.width, sz2.height)));
+        namedWindow("Undistorted", CV_WINDOW_NORMAL);
+        setWindowProperty("Undistorted", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+        imshow("Undistorted", imgFused);
+        waitKey(0);
+    }
     return 0;
 }
