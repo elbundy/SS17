@@ -1,0 +1,30 @@
+\documentclass[a4paper]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage{amsmath}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+
+\usetikzlibrary{positioning,shapes,arrows}
+
+\newcolumntype{M}[1]{D{.}{.}{1.#1}}
+
+\title{Exercise Sheet 7}
+\begin{document}
+\maketitle
+
+\section*{Problem 7.1}
+1)
+$$U_A(s) = R(s) + \gamma \cdot max_a(\sum_{s'} U_B(s') \cdot T(s,a,s'))$$
+$$U_B(s) = -R(s) + \gamma \cdot max_a(\sum{s'} U_A(s') \cdot T(s, a, s'))$$
+\end{document}
