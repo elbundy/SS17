@@ -93,4 +93,5 @@ void CameraCalibration::showImage(int num)
     drawChessboardCorners(im, this->boardSize, this->imagePoints[num], true);
     imshow("Detected corners", im);
     waitKey(0);
+    cv::destroyWindow("Detected corners");
 }
