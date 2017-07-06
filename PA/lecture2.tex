@@ -1,0 +1,101 @@
+\documentclass{scrartcl}
+\usepackage[top=3cm, bottom=3cm, left=2cm,right=2cm]{geometry} 
+\usepackage[parfill]{parskip}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{esvect}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+
+
+\DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\parskip = 4pt
+
+\title{Pattern Analysis - Lecture notes}
+\author{Sebastian Rietsch}
+
+\begin{document}
+\maketitle
+\section{Random Forests}
+\textit{What is a random forest?} An ensemble of decision trees.
+
+\textit{What is a decision tree?} A binary tree with a "decision" at every internal and the root node. It is a learning based approach: A good decision functions at the internal nodes are the result of training.
+
+\textit{What is a decision?} For example the answer to the question: "Is this sample on the right side of a hyperplane?"
+
+\textit{Why an ensemble of trees?} Experience showed that it is complicated to train a single, highly accurate decision tree. The idea of random forests is therefore to train a large number of individually less accurate trees in a ranomized fashion, and to report then an averaged result of this forest. 
+If we have a trained decision tree, we can test it by evaluating at the root node a function
+\[h(\vec{x}, \vec{\vartheta}_j): \mathbb{R}^d \times \underset{\text{tree parameters}}{\mathcal{T}} \rightarrow \{0, 1\}.\]
+
+Depending on the result we evaluate the test function at either the left successor or the right successor of the root node, and continue down the tree recursively until a terminal/leaf node is reached.
+The leaf node performs an application-specific action. For example, if the task is to perfom classification, it assigns a label to the sample.
+
+\textit{Training:} compute the tree parameters \(\vartheta\), consisting of
+\begin{itemize}
+    \item
+        the tree height/depth (\textit{Note:} deeper trees tend to overfitt, must be complemented with increased number of trees, trade-off)
+    \item
+        the splitting function at each internal node
+    \item
+        if necessary, the "action" in the leaf node
+\end{itemize}
+
+It is important to note that this "binary tree paradigm" essentially performs a partitioning of the feature space. More specifically, each internal node subdivides the incoming samples into two parts.
+
+\subsection{Specific task: classification}
+Training of a single tree in a forest of size T
+\begin{itemize}
+    \item
+        decide for a set of splitting function prototypes, e.g. hyperplanes or conics, ... (simpler functions are typically prefered. Simplest function: "axis aligned split")
+    \item
+        (decide for randomization)
+    \item
+        to find the parameters for the split function, select a suitable \underline{objective function}. 
+\end{itemize}
+"Solid choice": Information Gain
+\[I = H(S_j) - \sum_{i \in \{L,R\}} \frac{\abs{S^i_j}}{\abs{S_j}} H(S^i_j)\]
+where \(S_j\) is the data that flows into the node, \(S^L_j S^R_j\) is the data that flows to the left/right successor and \(H(\dots)\) denotes the entropy. (\textit{Note:} \(I = H_{\text{before}} - H_{\text{after}}\))
+\[H(S_j) = -\sum_{c \in C} p(c) \cdot log(p(c)))\] 
+where \(c\) denotes the class label, and \(p(c)\) the empirical distribution computed from \(S_j\). 
+
+The candidate functions, out of which the best on is chosen with the information gain, are \underline{randomly drawn}. Typically, one decides:
+\begin{itemize}
+    \item
+        how many candidate functions are drawn
+    \item
+        if also linear projection of the data shall be drawn (e.g. consider only dimensions \(\{d_{i_1}, d_{i_2}, \dots, d_{i_n}\}\)
+    \item
+        how the splitting parameters are sampled
+\end{itemize}
+\(\Rightarrow\) Note that a sparser sampling leads to more "noise"/less optimal results. (\textit{Note:} might be desired, e.g. prevents overfitting)
+
+Choice of tree depth:
+\begin{itemize}
+    \item
+        set maximum depth ("mandatory")
+    \item
+        optional: set minimum number of samples for split 
+    \item
+        depending on the application, stop if for example 99\% of features in a node belong to one class
+\end{itemize}
+
+Final classifier output:
+\begin{itemize}
+    \item
+        at a leaf node, report the relative frequencies of the class labels in that node (e.g., 15\%: class 1, 85\% class 2)
+    \item
+        combine al trees by averaging the individual tree outputs. If a single discrete label is required, decide for the class with maximum probability.
+\end{itemize}
+\end{document}
