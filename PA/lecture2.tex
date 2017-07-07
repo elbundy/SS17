@@ -13,6 +13,8 @@
 \usepackage{booktabs}
 \usepackage{tikz}
 \usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{float}
 
 
 \DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
@@ -66,9 +68,19 @@ Training of a single tree in a forest of size T
 \end{itemize}
 "Solid choice": Information Gain
 \[I = H(S_j) - \sum_{i \in \{L,R\}} \frac{\abs{S^i_j}}{\abs{S_j}} H(S^i_j)\]
-where \(S_j\) is the data that flows into the node, \(S^L_j S^R_j\) is the data that flows to the left/right successor and \(H(\dots)\) denotes the entropy. (\textit{Note:} \(I = H_{\text{before}} - H_{\text{after}}\))
+where \(S_j\) is the data that flows into the node, \(S^L_j S^R_j\) is the data that flows to the left/right successor and \(H(\dots)\) denotes the entropy. (\textit{Note:} \(I = H_{\text{before}} - H_{\text{after, weighted}}\))
 \[H(S_j) = -\sum_{c \in C} p(c) \cdot log(p(c)))\] 
 where \(c\) denotes the class label, and \(p(c)\) the empirical distribution computed from \(S_j\). 
+
+%Binary entropy function plot
+\begin{figure}[ht]
+	\centering
+    \includegraphics[scale=0.5]{img/entropy.png}
+	\caption{Binary entropy function}
+	\label{fig:entropy}
+\end{figure}
+
+
 
 The candidate functions, out of which the best on is chosen with the information gain, are \underline{randomly drawn}. Typically, one decides:
 \begin{itemize}
@@ -98,4 +110,83 @@ Final classifier output:
     \item
         combine al trees by averaging the individual tree outputs. If a single discrete label is required, decide for the class with maximum probability.
 \end{itemize}
+
+\section{Random Forests (continued)}
+Example: Classification
+\begin{enumerate}
+    \item
+        Randomly select a number of splitting functions 
+    \item
+        Evaluate the information gain for each splitting function
+    \item
+        Set the function with maximum information gain as the current nodes' decision function
+    \item
+        Recursively repeat for the child nodes, until max tree depth (or some other criterium) is reached 
+\end{enumerate}
+
+\subsection{Regression Forests}
+Goal: predict a \underline{continous} label \(p(y|\vec{x})\). (Remark: choice of the model complexity is related to the bias/variance trade off)
+
+"Leaf prediction model": a base function that is fitted to the samples. The leaf prediction model could be
+\begin{multicols}{2}
+\begin{itemize}
+    \item
+        constant
+    \item
+        linear
+    \item
+        polynomial
+    \item
+        ...
+\end{itemize}
+\end{multicols}
+
+To faithfully represent all of the data with a single function, it would certainly make sense to use a polynomial model, or something even more complex. However, the random idea implies to subdivide/partition the space, and to fit simpler models to the individual partitions. As a specific example, let's split up our input data points:
+
+\begin{figure}[ht]
+	\centering
+    \includegraphics[height=4cm]{img/rf_regression.jpg}
+	\caption{Regression split}
+	\label{fig:rf_regression}
+\end{figure}
+
+The decision criterion for the splitting function works analogously to the classification case. The only difference ist that we need to define the entropy \(H(S_j)\) on continous values:
+\[H(S_j) = -\frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \int_y p(y|x) \cdot log(y|x)dy\]
+where \(p(y|x)\) can, e.g. be chosen as a Gaussian distribution \(p(y|x) = \mathcal{N}(y; \overline{y}(x), \sigma_y^2(x))\), where \(\overline{y}(x)\) is a linear function and \(\sigma_y(x)\) is the conditional variance computed from a linear fit.
+
+Probabilistic linear fit:
+\begin{figure}[H]
+	\centering
+    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
+	\caption{Probabilistic linear fit}
+	\label{fig:rf_regression}
+\end{figure}
+
+Combining the expression for \(p(y|x)\) into \(H(S_j)\) yields
+\[H(S_j) = \frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \frac{1}{2} \cdot log((2 \pi e)^2 \sigma_y^2(\vec{x}))\]
+\[\Rightarrow I(S_j, \vartheta) = \sum_{\vec{x} \in S_j} log(\sigma_y(\vec{x})) - \sum_{i \in \{L, R\}} (\sum_{x \in S_j^i} log (\sigma_y(\vec{x}))) \]
+
+\subsection{Density Forests}
+Very same idea, adapted to unlabelled data $\Rightarrow$ learning-baed density estimator.
+
+Each leaf node is modeled as a multivariate Gaussian distribution. The information gain metric can again be reused, i.e. \(I(S_j, \vartheta) = H(S_j) - \sum_{i \in \{L, R\}} \frac{\abs{S_j^i}}{\abs{S_j}} \cdot H(S_j^i)\) but let us choose \(H(S_j)\) as
+%Fancy
+\[
+H(S_j) = \frac{1}{2} \cdot log((2 \pi e)^d \abs{
+    \underset{\mathllap{
+        \begin{tikzpicture}
+            \draw[->] (-0.3, 0) to[bend right=20] ++(0.3,2ex);
+            \node[below left,align=center] at (0,0) {Determinant of the covariance matrix of the data,\\ "volume of a cluster"};
+        \end{tikzpicture}
+    }}{\Lambda} 
+S_j})
+\]
+
+Plugging \(H(S_j)\) back into \(I(S_j, \vartheta)\) yields
+\[I(S_j, \vartheta) = log (\abs{\Sigma(S_j)}) - \sum_{i \in \{L, R\}} \frac{\abs{S_j^i}}{\abs{S_j}} \cdot log(\abs{\Lambda(S_j^i)})\].
+
+In each leaf, fit a multivariate Gaussian distribution to the data in that leaf using, e.g. MLE.
+
+Note that the fitted densities have discontinuities at the splitting boundaries (this is the same type of discontinuity that we observed for regression forests or classification forests). However, remember that the result of a random forest is averaged over all individual trees. Because of randomization, each tree splits at a slightly different location, and thus the discontinuities are "averaged out" in the forest.
+    
 \end{document}
