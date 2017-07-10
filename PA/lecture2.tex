@@ -1,6 +1,5 @@
 \documentclass{scrartcl}
 \usepackage[top=3cm, bottom=3cm, left=2cm,right=2cm]{geometry} 
-\usepackage[parfill]{parskip}
 
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
@@ -15,6 +14,7 @@
 \usepackage{graphicx}
 \usepackage{multicol}
 \usepackage{float}
+\usepackage{url}
 
 
 \DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
@@ -23,6 +23,10 @@
 \DeclarePairedDelimiter\abs{\lvert}{\rvert}%
 \DeclarePairedDelimiter\norm{\lVert}{\rVert}%
 
+\usepackage{titlesec}
+\newcommand{\sectionbreak}{\clearpage}
+
+\usepackage[parfill]{parskip}
 \parskip = 4pt
 
 \title{Pattern Analysis - Lecture notes}
@@ -111,7 +115,7 @@ Final classifier output:
         combine al trees by averaging the individual tree outputs. If a single discrete label is required, decide for the class with maximum probability.
 \end{itemize}
 
-\section{Random Forests (continued)}
+\section{Random Forests 2}
 Example: Classification
 \begin{enumerate}
     \item
@@ -154,13 +158,13 @@ The decision criterion for the splitting function works analogously to the class
 \[H(S_j) = -\frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \int_y p(y|x) \cdot log(y|x)dy\]
 where \(p(y|x)\) can, e.g. be chosen as a Gaussian distribution \(p(y|x) = \mathcal{N}(y; \overline{y}(x), \sigma_y^2(x))\), where \(\overline{y}(x)\) is a linear function and \(\sigma_y(x)\) is the conditional variance computed from a linear fit.
 
-Probabilistic linear fit:
-\begin{figure}[H]
-	\centering
-    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
-	\caption{Probabilistic linear fit}
-	\label{fig:rf_regression}
-\end{figure}
+%Probabilistic linear fit:
+%\begin{figure}[H]
+%	\centering
+%    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
+%	\caption{Probabilistic linear fit}
+%	\label{fig:rf_regression}
+%\end{figure}
 
 Combining the expression for \(p(y|x)\) into \(H(S_j)\) yields
 \[H(S_j) = \frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \frac{1}{2} \cdot log((2 \pi e)^2 \sigma_y^2(\vec{x}))\]
@@ -189,4 +193,114 @@ In each leaf, fit a multivariate Gaussian distribution to the data in that leaf 
 
 Note that the fitted densities have discontinuities at the splitting boundaries (this is the same type of discontinuity that we observed for regression forests or classification forests). However, remember that the result of a random forest is averaged over all individual trees. Because of randomization, each tree splits at a slightly different location, and thus the discontinuities are "averaged out" in the forest.
     
+\section{Hidden Markov Models and Random Markov Fields}
+Generative vs. Discriminative Model: let \(x\) denote the input, \(y\) the hidden variable/prediction/...
+\[p(x,y) \Leftrightarrow p(y|x)\]
+
+In a generative model, the available information is "more complete", i.e. we can for example also generate new samples \(x\) by sampling from \(p(x,y)\) by marginalizing over \(y\).
+
+A discriminative model is slimmer (which is particularly useful for robust training with limited training data (the situation we're almost always in)); however, it only allows to discriminate between different \(y\)'s, but we can not generate new values \(x\).
+
+\subsection{Remarks about HMMs}
+\begin{itemize}
+    \item
+        Probabilistic, graphical model
+    \item
+        the directed edge in the graph can be understood as a statistical dependency: \[S_1 \rightarrow S_2 \Rightarrow p(S_2|S_1)\]
+    \item
+        Generative approach
+    \item
+        For many tasks, including speech processing, we oftentimes only allow for state transitions \(a_{ij}\) with \(i \leq j\). (no backward links) Those restricted HMMs are called "Left-right HMMs", as opposed to fully connected ("ergodic") HMMs.
+\end{itemize}
+
+\medbreak
+How can we generate observations with an HMM?
+\begin{enumerate}
+    \item
+        Sample from \(\pi = (\dots)\) (this gives you starting state) 
+    \item
+        Let \(S_1\) denote the starting state. Sample from \(b_1\) (column or row from production probability matrix \(B\)) a symbol
+    \item
+        Sample from \(\vec{a}_{S_1}\) (column or row from state transition matrix \(A\)) the next state
+    \item
+        Repeat 2.-3. until (randomly drawn/desired) word length reached
+\end{enumerate}
+
+\subsection{Markov Random Fields (MRF)}
+1985, Geman/Geman: introduced MRFs to image processing:  Consider the pixel grid as a lattice (Gitter) of random variables.
+
+More specifically, let us assume that the image \(F\) is given by the random matrix \([f_{ij}]\). %\(\Rightarrow p([f_{ij}])\). 
+
+Assumption: limited statistical dependency:
+\[p(f_{ij}| f_{i-1, j-1}, f_{i, j-1}, f_{i-1,j})\]
+where \(f_{i-1, j-1}, f_{i, j-1}, f_{i-1,j})\) form a dependency of the neighbors to \(f_{i,j}\) (This will be our Markov property).
+
+\[p([f_{ij}]) = \prod_{i,j} p(f_{i,j} | f_{i-1, j-1}, f_{i, j-1}, f_{i-1,j})\]
+
+\subsubsection{Definition of MRF}
+Lets us consider the features/observations \(\vec{x}_1,\vec{x}_2, \dots, \vec{x}_N\)
+\begin{enumerate}
+    \item
+        Positivity: \(p(\vec{x}_1,\vec{x}_2, \dots, \vec{x}_N) > 0\)
+    \item
+        Markov property: \(p(\vec{x}_k | \vec{x}_1, \dots, \vec{x}_{k-1},\vec{x}_{k+1} \dots, \vec{x}_N) = p(\vec{x}_k|\mathcal{N}(\vec{x}_k))\) where \(\mathcal{N}(\vec{x}_k)\) denoted the neighborhood of \(\vec{x}_k\).
+\end{enumerate}
+Definition of the neighborhood: 
+\begin{enumerate}
+    \item
+        \(\vec{x}_k \notin \mathcal{N}(\vec{x}_k)\)
+    \item
+        \(\vec{x}_i \in \mathcal{N}(\vec{x}_k) \Rightarrow \vec{x}_k \in \mathcal{N}(\vec{x}_i)\)
+    \item
+        \(\mathcal{N}(\vec{x}_k) = \{\vec{x}_i | 0 < dist(\vec{x}_i, \vec{x}_k) \leq t\}\)
+\end{enumerate}
+Example: Pixel grid:
+\(\mathcal{N}(\vec{x}_{i,j}) = \{x_{k,l} | (i - k)^2 + (j - l)^2 \leq c^2, i \neq k \text{ or } j \neq l \}\)
+\begin{itemize}
+    \item
+        NESW as neighbors, 4-Neighborhood \((c=1)\)
+    \item
+        All around as neighbors, 8-Neighborhood \((c=\sqrt 2)\)
+\end{itemize}
+
+\section{Markov Random Fields (continued)}
+(Graph) clique: Complete subgraph
+
+Gibbs Random Field (GRF): A GRF is given by the PDF 
+\(p(x) = \frac{1}{
+\underset{\mathllap{
+        \begin{tikzpicture}
+            \draw[->] (-0.3, 0) to[bend right=20] ++(0.3,2ex);
+            \node[below left,align=center] at (0,0) {\(Z = \sum_{x'}H(x')\) is called a Partition Function};
+        \end{tikzpicture}
+    }}{Z}}  e^{-H(x)}\)
+, where \(H(x)\) is an energy function, i.e. a sum of potential functions. For a given PDF \(p(x)\), the choice of energy function is not unique. Consider for example:
+\[H(x) = - log p(x) - log Z \]
+\[p(x) = \frac{1}{Z} e^{-H(x)} = \frac{1}{Z} e^{log p(x)} e^{log Z} = p(x)\]
+\[\Rightarrow \text{we can chose Z arbitratily}\]
+
+The interesting theoretical property is that GRF and MRF are equivalent. This is called the \textit{Hammersley-Clifford Theorem}.
+
+\bigbreak
+
+\subsection{Example: image denoising}
+Given: Observed noisy image \([g_{ij}]\)
+
+Hidden variables are the ideal (noiseless) images \([f_{ij}]\).
+
+\textbf{Assumption 1:} the ideal image is spatially smooth \[p([f_{ij}]) = \frac{1}{Z} \cdot e^{-H([f_{ij}])}\] where \(H([f_{ij}]) = \sum_{ij} \norm{\Delta f_ij}_2^2\) (sum of squared gradients, computed over a neighborhood) (Note: Smoother image produces smaller \(H\), which maximizes \(p([f_{ij}])\).
+
+\textbf{Assumption 2:} \([g_{ij}]\) is similar to \(f_{ij}\), but corrupted by additive Gaussian noise.
+\[ p([g_{ij}]|[f_{ij}]) = \prod_{i,j} \frac{1}{\sqrt{2\pi} \sigma_{ij}} \cdot exp(-\frac{1}{2\sigma_{ij}^2} \cdot \underset{\text{energy function H}}{(f_{ij} - g_{ij})^2)}\]
+
+With these two functions defined, we can solve for a MAP estimte for \(f\): 
+\begin{align*}
+    \underset{\text{estimated ideal image}}{[\hat{f}_{ij}]} &= \argmax_{[f_{ij}]} p([f_{ij}]|[g_{ij}])\\
+    &= \argmax_{[f_{ij}]} p([g_{ij}]|[f_{ij}]) \cdot p([f_{ij}])\\
+    &= \dots \text{(take log)}\\
+    &= \argmin_{[f_{ij}]} \{\sum_{ij} \norm{\Delta f_{ij}}_2^2 + \sum_{ij} \lambda_{ij}(f_{ij} - g_{ij})^2\}
+\end{align*}
+\(\norm{\Delta f_{ij}}_2^2\): function of clique of size 2
+
+Lecture slides: \url{https://www.slideshare.net/ykwang/markov-random-field-mrf} 
 \end{document}
