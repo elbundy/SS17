@@ -1,0 +1,171 @@
+\documentclass{scrartcl}
+\usepackage[top=3cm, bottom=3cm, left=2cm,right=2cm]{geometry} 
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{esvect}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{url}
+
+
+\DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\usepackage{titlesec}
+\newcommand{\sectionbreak}{\clearpage}
+
+\usepackage[parfill]{parskip}
+\parskip = 4pt
+
+\title{Künstliche Intelligenz 2 - Summary}
+\author{Sebastian Rietsch}
+
+\begin{document}
+\maketitle
+
+\section{Probablistic Reasoning, Part I: Basics}
+\subsection{Introduction}
+\textbf{Sources of Uncertainty} in Decision-Making:
+\begin{itemize}
+    \item
+        Non-deterministic actions
+    \item
+        Partial observability with unreliable sensors
+    \item
+        Uncertainty about the domain behavior
+\end{itemize}
+
+What is \textbf{probabilistic reasoning}?
+\begin{itemize}
+    \item
+        Deducing probabilities from knowledge about \textit{other} probabilities
+    \item
+        Determines probabilities that are difficult to assess, based on probabilities that are (relatively) easy to assess (\textit{to asses:} the process of estimating a probability \(P\) using statistics)
+\end{itemize}
+
+\textbf{Rational Agents}:
+\begin{itemize}
+    \item
+        We have a choice of \textbf{actions}
+    \item
+        These can lead to different solutions with different probabilities
+    \item
+        The actions have different costs
+    \item
+        The results have different utilities
+    \item
+        A rational agent chooses the action with the \textbf{maximum expected utility}
+\end{itemize}
+
+\subsection{Unconditional Probabilities}
+A \textbf{probability theory} is an assertion language for talking about possible worlds and an inference method for quantifying the degree of belief in such assertions (Example: we roll two dice with six sides, then we have 36 possible worlds: \((1,1), (2,1), \dots, (6,6)\)).
+
+A \textbf{probability model} \(\langle \Omega, P \rangle\) consists of a set \(\Omega\) of possible worlds called the sample space and a probability function \(P: \Omega \rightarrow \mathbb{R}\), such that \(0 \leq P(\omega) \leq 1\) for all \(\omega \in \Omega\) and \(\sum_{\omega \in \Omega} P(\omega) = 1\). We restrict ourselves to a discrete, countable sample space.
+
+\textbf{Random variables}:
+\begin{itemize}
+    \item
+        A random variable is a variable quantity whose value depends on possible outcomes of unknown variables and processes we do not understand
+    \item
+        Given a random variable \(X\), \(P(X = x)\) denotes the prior probability, or unconditional probability, that \(X\) has value \(x\)
+    \item
+        We will refer to the fact \(X = x\) as an event or outcome
+    \item
+        For Boolean variable \(Name\), we write name for \(Name = \top\) and \(\lnot name\) for \(Name = \bot\)
+\end{itemize}
+
+The \textbf{probability distribution} for a random variable \(X\), written \(P(X)\), is the vector of probabilities for the (ordered) domain of \(X\).
+
+Given a subset \(Z \subseteq \{X_1, \dots, X_n\}\) of random variables, an event is an assignment of values to the variables in \(Z\). The \textbf{joint probability distribution}, written \(P(Z)\), lists the probabilities of all events.
+
+An \textbf{atomic event} is an assignment of values to all variables.
+
+A \textbf{proposition} describes a set of multiple atomic events (\textbf{Example:} we roll two dice and are interested in the cases where they add up to 11). The probability associated with a proposition is defined by the sum of probabilities of the worlds in which it holds: For any proposition \(\phi, P(\phi) = \sum_{\omega \in \phi} P(\phi)\).
+
+\textbf{Kolmogorov axioms:}
+\begin{enumerate}
+    \item
+        The probability of an event is a non-negative real number: \[P(E) \in \mathbb{R}, P(E) \geq 0, \forall E \in F\] where \(F\) is the event space.
+    \item
+        The probability that at least one of the elementary events in the entire sample space will occure is 1: \(P(\Omega) = 1\).
+    \item
+        Any countable sequence of disjoint sets (mutually exclusive events) \(E_1, E_2, \dots \) satisfies \[P(\bigcup_{i=1}^{\infty} (E_i)) = \sum_{i=1}^{\infty} P(E_i).\]
+\end{enumerate}
+From this follows \(P(A \lor B) = P(A) + P(B) - P(A \land B)\).
+
+\subsection{Conditional Probabilities}
+In the presence of additional information, we can no loger use the unconditional (\textbf{prior}) probabilities (because probabilies model our belief, thus they depend on our knowledge).
+
+Given propositions \(A\) and \(B\), \(P(a|b)\) denotes the \textbf{conditional probability} of \(a\) given that all we know is \(b\). The conditional, or posterior probability of \(a\) given \(b\) is defined as:
+\[P(a|b) = \frac{P(a \land b)}{P(b)}\]
+
+The \textbf{conditional probability distribution} of \(P(X|Y)\) is the table of all conditional probabilies of values of \(X\) given values of \(Y\).
+
+\subsection{Independence}
+Problem with full joint probility distributions: Given \(n\) random variables with \(k\) values each, the joint pdf containts \(k^n\) probabilities. This motivates the use of conditional probabilities while exploiting the \textbf{(conditional) independence} property.
+
+Events \(a\) and \(b\) are \textbf{independent} if \(P(a \land b) = P(a) \cdot P(b)\), from which follows that \(P(a | b) = P(a)\) and vice versa.
+
+In case of independence, the joint probability distribution of multiple variables can be reconstructed from smaller, statistically independent joint probability distributions.
+
+\subsection{Basic Probabilistic Reasoning Methods}
+\begin{itemize}
+    \item
+        \textbf{Product Rule:} \(P(a \land b) = P(a | b) P(b)\) 
+    \item
+        \textbf{Chain Rule:} \(P(X_1, \dots, X_n) = P(X_n | X_{n-1}, \dots X_1) \cdot \dots \cdot P(X_2 | X_1) \cdot P(X_1)\) (This works for any ordering of the variables)
+    \item
+        \textbf{Marginalization:} Given sets \(X\) and \(Y\) of random variables, we have:
+        \[P(X) = \sum_{y \in Y} P(X, y)\]
+    \item
+        \textbf{Normalization:} Given a vector \(\langle w_1, \dots, w_k \rangle\) of numbers in \([0,1]\) where \(\sum_{i=1}^k w_i \leq 1\), the normalization constant \(\alpha\) is \(\alpha \langle w_1, \dots, w_k \rangle = 1/\sum_{i=1}^k w_i\)
+        \begin{itemize}
+            \item
+                Given a random variable \(X\) and an event \(e\), we have \(P(X|e) = \alpha P(X, e)\) with \(\alpha = 1/P(e)\)
+            \item
+                Normalization + Marginalization: Given "query variable" \(X\), "observed event" \(e\), and "hidden variables" set \(Y\):
+                \[P(X|e) = \alpha P(X, e) = \alpha \sum_{y \in Y} P(X, e, y)\]
+        \end{itemize}
+\end{itemize}
+
+\subsection{Bayes' Rule}
+Given propositions \(A\) and \(B\) where \(P(a) \neq 0\) and  \(P(b) \neq 0\), we have:
+\[P(a|b) = \frac{P(b|a) P(a)}{P(b)}\]
+
+\subsection{Conditional Independence}
+Given sets of random variables \(Z_1, Z_2 \text{ and } Z\), we say \(Z_1\) and \(Z_2\) are \textbf{conditionally independent given \(Z\)} if:
+\[P(Z_1, Z_2 | Z) = P(Z_1 | Z) \cdot P(Z_2 | Z)\]
+
+If \(Z_1\) and \(Z_2\) are conditionally independent given \(Z\), the \(P(Z_1 | Z_2, Z) = P(Z_1 | Z)\).
+
+\subsection{Summary}
+\begin{itemize}
+    \item
+        Uncertainty is unavoidable in many environsments, namely whenever agents do not have perfect knowledge
+    \item
+        Probabilities express the degree of belief of an agent, given its knowledge, into an event
+    \item
+        Conditional probabilities express the likelihood of an event given observed evidence
+    \item
+        Assessing a probability means to use statistics to approximate the likelihood of an event
+    \item
+        Bayes' rule allows us to derive, from probabilities that are easy to assess, probabilities that arn't easy to assess
+    \item
+        Given mulitple evidence, we can exploit conditional independencie
+\end{itemize}
+
+\section{Probablistic Reasoning, Part II: Bayesian Networks}
+\end{document}
+
