@@ -1,0 +1,94 @@
+\documentclass{scrartcl}
+\usepackage[top=3cm, bottom=3cm, left=2cm,right=2cm]{geometry} 
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathtools}
+\usepackage{esvect}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\usepackage{dcolumn}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{url}
+
+
+\DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
+\DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}%
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}%
+
+\usepackage{titlesec}
+\newcommand{\sectionbreak}{\clearpage}
+
+\usepackage[parfill]{parskip}
+\parskip = 4pt
+
+\title{FoundCrypt - Summary}
+\author{Sebastian Rietsch}
+
+\begin{document}
+\maketitle
+
+\section{Introduction to Cryptography}
+\subsection{Hash functions}
+A \textbf{hash function} \(H\) maps strings of arbitrary input length to a string of a fixed length (e.g. 256 bits) (\(H: M \rightarrow R, \abs{M} >> \abs{R}\)).
+It is \textbf{efficiently} computable for all inputs.
+
+A \textbf{collision} occurs, if the hash function maps two distinct inputs \(x,y\) to the same output \(z\), i.e., \(H(x) = H(y)\) and \(x \neq y\).
+
+A hash function \(H\) is \textbf{collision-resistant} if finding two values \(x,y\) such that \(H(x) = H(y)\) and \(x \neq y\) is not possible (in probabilistic polynomial-time) (every hash function has collisions, but finding them is assumed to be difficult).
+\begin{itemize}
+    \item
+        Brute-force attack: Choose \(2^{256}+1\) distinct values, compute all hash values, output the first two colliding values
+\end{itemize}
+
+A hash function \(H\) is \textbf{hiding} if when a secret value \(r\) is chosen from a probability distribution that has high min-entropy, then given \(H(r || x)\) it is infeasible to find \(x\) (in probabilistic polynomial-time).
+
+\subsection{Commitments}
+\begin{itemize}
+    \item
+        \(com \leftarrow commit(k, m):\) The commitment algorithm takes as input a key \(k\), a message \(m\) and returns a commitment \(com\).
+    \item
+        \(\{0,1\} \leftarrow verify(com, k, m):\) The verification algorithm takes as input a commitment \(com\), a key \(k\), and a message \(m\). It outputs a bit.
+\end{itemize}
+Security properties:
+\begin{itemize}
+    \item
+        \textbf{Hiding:} given \(com\), it is infeasible to find \(m\).
+    \item
+        \textbf{Binding:} for any key \(k\), it's infeasible to find \(x\neq y\) such that \(verify(commit(k,x), k, y)=1\).
+\end{itemize}
+Construction:
+\begin{enumerate}
+    \item
+        Take key: \(r \leftarrow \{0,1\}^{256}\)
+    \item
+        Use hash function \(H\) to produce commitment: \(com \leftarrow H(r||m)\)
+    \item
+        Verification: Check that \(com = H(r||m)\)
+\end{enumerate}
+
+\subsection{Puzzle Friendliness}
+A hash function \(H\) is \textbf{puzzle-friendly} if for every possible \(n\)-bit output value \(y\), if \(k\) is choosen from a distribution with high min-entropy, then it is infeasible to find \(x\) such that \(H(k||x) =y\) in time significantly less then \(2^n\).
+
+Search puzzle:
+\begin{itemize}
+    \item
+        \((H, id, Y)\) given, where \(id\) is the puzzle-ID, chosen from a high min-entropy distribution and \(Y\) is the target set (size determines the hardness)
+    \item
+        The value \(x\) is a solution if \(H(id||x) \in Y\)
+\end{itemize}
+
+A hash function \(H\) is \textbf{puzzle-friendly} if for every possible \(n\)-bit output value \(y\), if \(k\) is choosen from a distribution with high min-entropy, then it is infeasible to find \(x\) such that \(H(k||x) =y\) in time significantly less then \(2^n\).
+
+\subsection{SHA-256 and the Merkle Damgard Transform}
+TODO
+
+\end{document}
+
