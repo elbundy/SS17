@@ -1,3 +1,4 @@
+import java.lang.Math;
 /// ----------------------------------------------------------------------------------------
 /// This class implements the euclidean loss, which is only used for OutputLayer
 /// ----------------------------------------------------------------------------------------
@@ -11,13 +12,21 @@ public class EuclideanLoss implements LossFunction
 	public float[] derivative(Blob expected, Blob real) 
 	{
 		float[] loss=new float[expected.getLength()];
-
+		float norm = compute(expected,real);
+		for(int i = 0; i<expected.getLength(); ++i){
+			loss[i] = (expected.getValue(i) - real.getValue(i))/norm;
+		}
 		return loss;
 	}
 
 	// This function computes euclideanLoss(expected, real) and returns it
 	public float compute(Blob expected, Blob real) 
 	{
-		return (float)0.1337;
+		float sum = 0;
+		assert(expected.getLength()==real.getLength());
+		for(int i = 0; i < expected.getLength(); ++i){
+			sum += Math.pow(expected.getValue(i) - real.getValue(i),2);
+		}
+		return (float) Math.sqrt(sum)/(2*real.getLength());
 	}
 }
