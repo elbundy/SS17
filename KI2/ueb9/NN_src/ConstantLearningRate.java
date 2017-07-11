@@ -9,12 +9,12 @@ public class ConstantLearningRate implements LearningRate
 	float rate;
 	public ConstantLearningRate(float rate)
 	{
-		
+		this.rate = rate;
 	}
 	
 	public float getLearningRate() 
 	{
-		return (float)0.1337;
+		return rate;
 	}
 
 }

@@ -5,7 +5,7 @@ public class ConstantBias implements BiasFiller
 	public float compute(int currWeight, int in, int out) 
 	{
 		/* ToDo: This method should return an appropriate constant value for bias initialization */
-		return (float)0.1337;
+		return (float)0.0;
 	}
 
 }
