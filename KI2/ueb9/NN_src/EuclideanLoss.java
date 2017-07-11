@@ -11,11 +11,12 @@ public class EuclideanLoss implements LossFunction
 	// Defined as: (expected-real)^2
 	public float[] derivative(Blob expected, Blob real) 
 	{
+
 		float[] loss=new float[expected.getLength()];
-		float norm = compute(expected,real);
 		for(int i = 0; i<expected.getLength(); ++i){
-			loss[i] = (expected.getValue(i) - real.getValue(i))/norm;
+			loss[i] = (expected.getValue(i) - real.getValue(i));
 		}
+
 		return loss;
 	}
 
@@ -24,9 +25,9 @@ public class EuclideanLoss implements LossFunction
 	{
 		float sum = 0;
 		assert(expected.getLength()==real.getLength());
-		for(int i = 0; i < expected.getLength(); ++i){
+		for(int i = 0; i < expected.getLength(); i++){
 			sum += Math.pow(expected.getValue(i) - real.getValue(i),2);
 		}
-		return (float) Math.sqrt(sum)/(2*real.getLength());
+		return (float)sum/(2*expected.getLength());
 	}
 }

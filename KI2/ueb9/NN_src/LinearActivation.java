@@ -9,13 +9,13 @@ public class LinearActivation implements ActivationFunction
 	// This function computes linear(x) and returns it
 	public float compute(float x)
 	{
-		return (float)0.1337;
+		return x;
 	}
 
 	// This function computes linear'(x) and returns it
 	public float derivative(float x) 
 	{
-		return (float)0.1337;
+		return (float)1.0;
 	}
 
 }

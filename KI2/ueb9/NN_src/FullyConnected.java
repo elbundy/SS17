@@ -14,10 +14,23 @@ public class FullyConnected implements Layer
 	// Bias for each neuron
 	Blob bias;
 	
-	// TODO
 	public Blob forward(Blob inputBlob)
 	{
+		Blob outTmp = new Blob(output.width);
 
+		//Sum up inputs * weights
+		for(int i=0; i<weights.width; i++){
+			for(int j=0; j<weights.height; j++){
+				outTmp.addValue(j, inputBlob.getValue(i) * weights.getValue(i, j));
+			}
+		}
+	
+		//Add bias
+		for(int i=0; i<bias.width; i++){
+			outTmp.addValue(i, bias.getValue(i));		
+		}
+
+		output = outTmp;
 		return output;
 	}
 
