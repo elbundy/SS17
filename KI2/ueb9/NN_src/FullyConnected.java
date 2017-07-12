@@ -28,6 +28,7 @@ public class FullyConnected implements Layer
 		//Add bias
 		for(int i=0; i<bias.width; i++){
 			outTmp.addValue(i, bias.getValue(i));		
+			outTmp.setValue(i, func.compute(outTmp.getValue(i)));
 		}
 
 		output = outTmp;
