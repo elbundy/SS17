@@ -95,15 +95,16 @@ public class Testcases
 		Blob out=f.forward(inputBlob);
 		float expectedOutput[]=new float[]{0.099668f, 0.3884727f, 0.6169093f, 0.7739084f, 0.8716722f};
 		
+		boolean ret = true;
 		for(int i=0;i<out.getLength();i++)
 		{
 			System.out.println("Expected: "+expectedOutput[i]+" Calculated: "+out.getValue(i));
 			if(Math.abs(out.getValue(i)-expectedOutput[i])>0.01)
 			{
-				return false;
+				ret = false;
 			}
 		}
-		return true;
+		return ret;
 	}
 	
 	static boolean testCaseOutputBackward()
