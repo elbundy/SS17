@@ -56,8 +56,15 @@ public class OutputLayer implements Layer
 	// TODO
 	public void updateWeightsAndBias(Blob inputBlob, float learningRate)
 	{
-
-
+		for(int i=0; i<weights.width; i++){
+			for(int j=0; j<weights.height; j++){
+				weights.addValue(i, j, inputBlob.getValue(i)*learningRate*neuronDelta.getValue(j));
+			}
+		}
+		
+		for(int i = 0; i<bias.width; i++){
+			bias.addValue(i, learningRate*neuronDelta.getValue(i));
+		}
 	}
 
 	/** Constructor. */

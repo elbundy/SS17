@@ -39,8 +39,7 @@ public class FullyConnected implements Layer
 	// TODO
 	public Blob backward (Blob deltaBefore, Blob weightsBefore)
 	{
-
-		System.out.println("Dims: " + deltaBefore.width + " " + deltaBefore.height + " " + weightsBefore.width + " " + weightsBefore.height);
+		//System.out.println("Dims: " + deltaBefore.width + " " + deltaBefore.height + " " + weightsBefore.width + " " + weightsBefore.height);
 		//System.out.println("Dims2: " + neuronDelta.width + " " + neuronDelta.height);
 		for(int i = 0; i<neuronDelta.width; ++i){
 			float gstr = func.derivative(in.getValue(i));
@@ -50,8 +49,8 @@ public class FullyConnected implements Layer
 				//System.out.println("deltaBefore: " + deltaBefore.getValue(j) + " weightsBefore: " + weightsBefore.getValue(i,j));
 				sum += deltaBefore.getValue(j)*weightsBefore.getValue(i,j);
 			}
-			//neuronDelta.setValue(i, gstr * sum);
-			System.out.println("NeuronDelta: " + neuronDelta.getValue(i));
+			neuronDelta.setValue(i, gstr * sum);
+			//System.out.println("NeuronDelta: " + neuronDelta.getValue(i));
 		}
 
 		return neuronDelta;
@@ -60,6 +59,15 @@ public class FullyConnected implements Layer
 	// TODO
 	public void updateWeightsAndBias(Blob inputBlob, float learningRate)
 	{
+		for(int i=0; i<weights.width; i++){
+			for(int j=0; j<weights.height; j++){
+				weights.addValue(i, j, inputBlob.getValue(i)*learningRate*neuronDelta.getValue(j));
+			}
+		}
+		
+		for(int i = 0; i<bias.width; i++){
+			bias.addValue(i, learningRate*neuronDelta.getValue(i));
+		}
 
 	}
 
