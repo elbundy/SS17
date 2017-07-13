@@ -16,6 +16,8 @@
 \usepackage{float}
 \usepackage{url}
 
+\usepackage[toc, page]{appendix}
+
 
 \DeclareMathOperator*{\argmin}{argmin} % no space, limits underneath in displays
 \DeclareMathOperator*{\argmax}{argmax} % no space, limits underneath in displays
@@ -34,6 +36,7 @@
 
 \begin{document}
 \maketitle
+\tableofcontents
 \section{Random Forests}
 \textit{What is a random forest?} An ensemble of decision trees.
 
@@ -115,7 +118,7 @@ Final classifier output:
         combine al trees by averaging the individual tree outputs. If a single discrete label is required, decide for the class with maximum probability.
 \end{itemize}
 
-\section{Random Forests 2}
+\section{Random Forests (continued)}
 Example: Classification
 \begin{enumerate}
     \item
@@ -192,8 +195,9 @@ Plugging \(H(S_j)\) back into \(I(S_j, \vartheta)\) yields
 In each leaf, fit a multivariate Gaussian distribution to the data in that leaf using, e.g. MLE.
 
 Note that the fitted densities have discontinuities at the splitting boundaries (this is the same type of discontinuity that we observed for regression forests or classification forests). However, remember that the result of a random forest is averaged over all individual trees. Because of randomization, each tree splits at a slightly different location, and thus the discontinuities are "averaged out" in the forest.
-    
-\section{Hidden Markov Models and Random Markov Fields}
+
+
+\section{Hidden Markov Models and Markov Random Fields}
 Generative vs. Discriminative Model: let \(x\) denote the input, \(y\) the hidden variable/prediction/...
 \[p(x,y) \Leftrightarrow p(y|x)\]
 
@@ -303,4 +307,150 @@ With these two functions defined, we can solve for a MAP estimte for \(f\):
 \(\norm{\Delta f_{ij}}_2^2\): function of clique of size 2
 
 Lecture slides: \url{https://www.slideshare.net/ykwang/markov-random-field-mrf} 
+
+\section{Markov Random Fields}
+\begin{figure}[ht]
+	\centering
+    \includegraphics[scale=0.15]{img/mrf_1.jpg}
+	\caption{MRF for image denoising}
+	\label{fig:mrf_1}
+\end{figure}
+
+From a engineering perspective, we model the hidden variables by defining the unary and pairwise potentials. These are local relationships in the graph, i.e. they don't require complicated non-local interactions to be considered.
+
+Remember from last week: a MRF and a GRF (Gibbs Random Field) are equivalent (\textit{Hammersley-Clifford} theorem).
+This means that we can exchange the probabilities (defining the PDFs between the nodes in the MRF model might be impossible/hard) that describe the node relationships by potentials.
+
+\[p(\vec{x}) = \prod_C p_C(\vec{x}_C) = \frac{1}{Z} \prod_C \psi_C(x_C)\]
+
+Such potentials are much easier to design: We are typically interested in potential functions that assume a minimum value in a specific situation, e.g. \(\norm{\Delta f_{ij}}_2^2\) is minimal if \(f_{i,j} = f_{i,j+1} = \dots\), that depends on what we would like to achieve with the MRF.
+
+\(p(x_1, \dots, x_N) = \prod \dots\) independent segments of the random variables \(x_1, \dots, x_N\)
+
+General form of a Gibbs potential:
+\begin{align*}
+    p(\vec{x}) &= \frac{1}{Z} \prod_C \phi_C (\vec{x}_C)
+    = \frac{1}{Z} \prod_C e^{-H(\vec{x}_C)}
+    = \frac{1}{Z} e^{- \sum_C H(\vec{x}_C)}
+\end{align*}
+where \(H(\vec{x}_C) = \norm{\Delta f_{ij}}_2^2\) or \(H(\vec{x}_C) = \mathcal{N}(g_{ij}, f_{ij}, \sigma))\).
+
+\bigskip
+
+\(H(\vec{x}_C)\) is an energy function that is defined over clique potentials. Solvers for Markov Random Fields seek to directly minimize \(H(\vec{x}_C)\) instead of maximizing \(\psi_C(x_C)\).
+
+A modern way of solving an MRF is via \underline{graph cuts}\footnote{ Kolmogorov, Zabih: "What Energy Functions Can Be Minimized via Graph Cuts?"}.
+
+\subsection{Maximum Flow and Minimum Cut}
+\begin{figure}[ht]
+	\centering
+    \includegraphics[scale=0.13]{img/mrf_2.jpg}
+	\caption{Max Flow Min Cut}
+	\label{fig:mrf_2}
+\end{figure}
+
+There are a number of classic algorithm that solve the max flow problem in polynomial time.
+
+A minimum cut divides a network into two parts \(s, t\), such that the sum of the edge weights that are cut are minimal.
+
+A solution to the maximum flow problem is a solution to the minimum cut problem: the minimum cut consists of edges that are fully used in the solution to the max flow problem.
+
+\newpage
+\begin{appendices}
+
+\section{Lawrence R. Rabiner, Fellow: A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition}
+\subsection{Discrete Markov Processes}
+\begin{itemize}
+    \item
+        set of \(N\) discrete states \(S_1, S_2, \dots, S_N\)
+    \item
+        set of state transition probabilities \(a_{ij} = P(q_t = S_j | q_{t-1}=S_i)\)
+%    \item
+%        First order Markov chain: \(P(q_t = S_j|q_{t-1} = S_i, q_{t-2} = S_k, \dots) = P(q_t = S_j | q_{t-1}=S_i)\).
+    \item
+        properties: \(a_{ij} \geq = 0\) and \(\sum_{j=1}^N a_{ij} = 1\)
+    \item
+        the states itself are observable
+    \item
+        Calculating the probability of observations sequence given a model:
+        \begin{align*}
+            P(O|Model) &= P(S_3, S_3, S_1, S_1, S_3, S_2, S_3|Model)\\
+            &= P(S_3) \cdot P(S_3|S_3) \dots P(S_3|S_2)\\
+            &= \pi_3 \cdot a_{33} \dots a_{23}\\
+            &= \dots
+        \end{align*}
+        where \(\pi_i = P(q_1 = S_i)\) is the initial state probability
+\end{itemize}
+
+\subsection{Extension to Hidden Markov Models}
+
+
+
+\section[Undirected Graphical Models]{Undirected Graphical Models (Markov Random Fields) \protect\footnote{The Elements of Statistical Learning: Chapter 17, Undirected Graphical Models}}
+\subsection{Introduction}
+\begin{itemize}
+    \item
+        Consist of vertices (nodes) and edges joining some pairs of vertices
+    \item
+        Each vertex represents a random variable
+    \item
+        No edge between two vertices \(\Rightarrow\) conditionally independent, given the other variables
+    \item
+        Edges are parameterized by values or \textit{potentials} that encode the strength of the conditional dependence between the random variables
+    \item
+        Main challenges: model selection (structure), estimation of edge parameters from data (learning), and computation of marginal vertex probabilities and expectations, from their joint distribution (inference)
+\end{itemize}
+
+\subsection{Markov Graphs and Their Properties}
+A graph \(\mathcal{G}\) consists of a pair \((V,E)\), where \(V\) is a set of vertices and \(E\) the set of edges (defined by pairs of vertices). Two vertices \(X\) and \(Y\) are called adjacent if there is a edge joining them; this is denoted by \(X \sim Y\). A \textit{complete graph} is a graph with every pair of vertices joined by an edge.
+
+In a Markov graph \(\mathcal{G}\), the absence of an edge implies that the corresponding random variables are conditionally independent given the variables at the other vertices (known as \textit{pairwise Markov independencies} of \(\mathcal{G}\)). Notation:
+\[\text{No edge joining } X \text{ and } Y \Leftrightarrow X \bot Y | \text{rest} \]
+If \(A,B\) and \(C\) are subgraphs, then \(C\) is said to \textit{separate} \(A\) and \(B\) if every path between \(A\) and \(B\) intersects a node in \(C\). Separators have the nice property that they break the graph into conditionally independent pieces (known as \textit{global Markov properties} of \(\mathcal{G}\)). Notation:
+\[\text{if } C \text{ separates } A \text{ and } B \text{ then } A \bot B |C\]
+
+Pairwise and global Markov properties of a graph are equivalent. This is, the set of graphs with associated probability distributions that satisfy the pairwise Markov independencies and global Markov assumptions are the same. This is useful for inferring global independence relations from simple pairwise properties.
+
+The global Markov property allows us to decompose graphs into smaller more manageable pieces and thus leads to essential simplifications in computation and interpretation. A \textit{clique} is a complete subgraph - a set of vertices that are all adjacent to one another (\textit{maximal} if no other vertices can be added to it).
+
+A probability density function \(f\) over an Markov graph \(\mathcal{G}\) can be represented as
+\[f(x) = \frac{1}{Z} \prod_{C \in \mathcal{C}} \psi_C(x_C)\]
+where \(\mathcal{C}\) is the set of maximal cliques, and the postitive functions \(\psi_C(\cdot)\) are called \textit{clique potentials}. These are not in general density function, but rather are affinities that capture the dependence in \(X_c\) by scoring certain instances \(x_c\) higher than other. The quantity
+\[Z = \sum_{x \in \mathcal{X}}\prod_{C \in \mathcal{C}} \psi_C (x_C)\]
+is the normalizing constant, also known as \textit{partition} function.
+
+This definition of \(f\) implies a graph with independence properties defined by the cliques in the product. This holds for Markov networks \(\mathcal{G}\) with positive distributions, and is known as the \textit{Hammersley-Clifford} theorem.
+
+Because we are restricted to potential functions which are stritly positive it is convenient to express them as exponentials, so that
+\[\psi_C(x_C) = exp(-E(x_C))\]
+where \(E(x_C)\) is called an \textit{energy function}, and the exponential representation is called the \textit{Boltzmann distribution}. The joint distribution is defined as the product of potentials, and so the total energy is obtained by adding the energies of each of the maximal cliques.
+
+\subsection{Image de-noising \protect\footnote{Bishop, Pattern Recognition: 8.3.3}}
+Let the observed noisy image be described by an array of binary pixel values \(y_i \in \{-1, +1\}\), where the index \(i = 1, \dots, D\) runs over all pixels. We shall suppose that the image is obtained by taking  an unknown noise-free image, described by binary pixel values \(x_i \in \{-1, +1\}\) and randomly flipping the sign of pixels with some small probability.
+
+Because the noise level is small, we know that there will be a strong correlation between \(x_i\) and \(y_i\). We also know that neighbouring pixels \(x_i\) and \(x_j\) in an image are strongly correlated.
+
+\underline{TODO:} Random field model picture
+
+This graph has two types of cliques, each of which contains two variables. The cliques \(\{x_i, y_i\}\) have an associated energy function that expresses the correlation between these variables (\(-\eta x_i y_i)\), where \(\eta\) is a positive constant) \(\Rightarrow\) lower energy (higher probability) when \(x_i\) and \(y_i\) have the same sign.
+
+The remaining cliques comprise pairs of variables \(\{x_i, x_j\}\) where \(i, j\) are indices of neighbouring pixels. Again, we want the energy to be lower when the pixels have the same sign than when they have the opposite sign, and so we choose an energy given by \(-\beta x_i x_j\), where \(\beta\) is a positive constant.
+
+Additionally, we add a term \(hx_i\) for each pixel \(i\) in the noise-free image. Such a term has the effect of biasing the model towards pixel values that have one particular sign in preference to the other.
+
+The complete energy function for the model then takes the form
+\[E(x,y) = h \sum_i x_i - \beta \sum{\{i,j\}} x_ix_j - \eta \sum_i x_i y_i\]
+which defines a joint distribution over \(x\) and \(y\) given by
+\[p(x,y) = \frac{1}{Z} exp\{-E(x,y)\}\]
+
+\underline{\textit{Note:}}
+\begin{align*}
+    f(x) &= \frac{1}{Z} \prod_{C \in \mathbb{C}} \psi_C(x_C)\\
+    &= \frac{1}{Z} \prod_{C \in \mathbb{C}} exp\{-E(x_C)\}\\
+    &= \frac{1}{Z} exp\{-\sum_{C \in \mathbb{C}}E(x_C)\}
+\end{align*}
+
+We now fix the elements of \(y\) to the observed values given by the pixels of the noisy image, which implicitly defines a conditional distribution \(p(x|y)\) over noise-free images (see lecture).
+
+\end{appendices}
 \end{document}
