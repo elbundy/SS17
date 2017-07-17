@@ -147,4 +147,30 @@ Suppose we have to images acquired by cameras with non-coincident centres, then 
     \item
         $P' = [UWV^T | +u_3]$ or $[UWV^T| -u_3]$ or $[UW^TV^T| + u_3]$ or $[UW^TV^T| -u_3]$ where $u_3$ is the last column of $U$
 \end{itemize}
+
+\section{Multiple View Geometry: 11.12 Image Rectification}
+\begin{itemize}
+    \item
+        Process of resampling pairs of stereo images taken from widely different viewpoints (projection)
+    \item
+        After the projection, the epipolar line \textbf{run parallel with the x-axis} and \textbf{match up between views}
+    \item
+        Subject to: Matching points should have approximately the same x-coordinates (overlaid images should correspond as far as possible) and minimal amount of distortion
+    \item
+        As a result, problem gets reduces to epipolar geometry produced by a pair of identical cameras placed side by side with their principal axes parallel
+\end{itemize}
+
+\subsection{11.12.3 Algorithm outline}
+\begin{enumerate}
+    \item
+        Identify a seed set of image-to image matches \(x_i \leftrightarrow x_i'\) (at least seven)
+    \item
+        Compute the fundamental matrix \(F\) and find the epipoles \(e\) and \(e'\)
+    \item
+        Select a projective transformation \(H'\) that maps the epipole \(e'\) to the point at infinity \((1,0,0)^T\)
+    \item
+        Find the matching projective transformation \(H\) that minimizes the least-square distance \(\sum_i d(H x_i, H'x_i')\)
+    \item
+        Resample the first image according to the projective transformation \(H\) and the second image according to the projective transformation \(H'\)
+\end{enumerate}
 \end{document}
