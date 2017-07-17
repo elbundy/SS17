@@ -627,18 +627,186 @@ One problem with the first order Markov assumption is, that it might not model t
 \end{itemize}
 
 \subsection{Inference in Temporal Models}
+\textbf{Inference tasks:}
+\begin{itemize}
+    \item
+        \textbf{Filtering:} computing the \textbf{belief state} - the posterior distribution over the most recent state - given all evidence to date. In our example, we wish to compute \(P(X_t|e_{1:t})\). Filtering is what a rational agent does to keep track of the current state so that rational decisions can be made
+    \item
+        \textbf{Prediction:} computing the posterior distribution over the future state, given all evidence to date. That is, we wish to compute \(P(X_{t+k}|e_{1:t})\) for some \(k>0\)
+    \item
+        \textbf{Smoothing:} computing the posterior distribution over a past sate, given all evidence up to the present. That is, we wish to compute \(P(X_k|e_{1:t})\) for some \(k\) such that \(0 \leq k < t\). Smoothing provides a better esimate of the state than was available at the time, because it incorporates more evidence
+    \item
+        \textbf{Most likely explanation:} Given a sequence of observations, we might wish to find the sequence of states that is most likely to have generated those observations. That is, we wish to compute \(argmax_{x:t} P(x_{1:t}|e_{1:t})\)
+\end{itemize}
+
+\subsubsection{Filtering and prediction}
+Given the filtering result up to time \(t\), the agents needs to compute the result for \(t+1\) from the new evidence \(e_{t+1}\),
+\[P(X_{t+1} | e_{1:t+1}) = f(e_{t+1}, P(X_t|e_{1:t}))\]
+for some function \(f\). This process is called \textbf{recursive estimation}.
+
+Two part process: first, the current state distribution is projected forward from \(t to t+1\); then it is updated using the new evidence \(e_{t+1}\).
+\begin{align*}
+    P(X_{t+1} | e_{1:t+1}) &= P(X_{t+1} | e_{1:t}, e_{t+1})\\
+    &= \alpha P(e_{t+1} | X_{t+1}, e_{1:t}) \ P(X_{t+1} | e_{1:t})\\
+    &= \alpha P(e_{t+1} | X_{t+1}) \ P(X_{t+1} | e_{1:t})
+\end{align*}
+
+\(P(e_{t+1} | X_{t+1})\) is given by the sensor model. We obtain the other term by conditioning on the current state \(X_t\):
+\begin{align*}
+    P(X_{t+1} | e_{1:t}) &= \sum_{x_t} P(X_{t+1} | x_t, e_{1:t}) P(x_t | e_{1:t})\\
+    &= \sum_{x_t} P(X_{t+1} | x_t)P(x_t|e_{1:t})
+\end{align*}
+
+so
+
+\[P(X_{t+1} | e_{1:t+1}) = \alpha P(e_{t+1} | X_{t+1}) \ \sum_{x_t} P(X_{t+1} | x_t)P(x_t|e_{1:t})\]
+
+
+
+
+In the summation, the first factor comes from the transition model and the second comes from the current state distribution. Hence, we have the desired recursive formulation. 
+We can think of the filtered estimate \(P(X_t | e_{1:t})\) as a message \(f_{1:t}\) that is propagated forward along the sequence, modified by each transition and updated by each new observation. 
+The process is given by \(f_{1:t+1} = \alpha FORWARD(f_{1:t}, e_{t+1})\).
+
+\bigbreak
+
+\textbf{Prediction} is simply filtering without new evidence, 
+\[P(X_{t+k+1} | e_{1:t}) = \sum_{x_{t+k}} P(X_{t+k+1}|x_{t+k}) P(x_{t+k}|e_{1:t})\]
+
+As \(k\ \rightarrow \infty\) the predicted distribution tends to converge to a fixed point, after which it remains constant for all time. This is the stationay distribution of the Markov process defined by transition model.
+
+\subsubsection{Smoothing}
+We can again split the computation into two parts - the evidence up to \(k\) and the evidence from \(k+1\) to \(t\).
+\begin{align*}
+    P(X_k | e_{1:t}) &= P(X_k | e_{1:k}, e_{k+1:t})\\
+    &= \alpha P(X_k | e_{1:k}) P(e_{k+1:t}|X_k, e_1:k)\\
+    &= \alpha P(X_j | e_{1:k}) P(e_{k+1:t} | X_k)\\
+    &= \alpha f_{1:k} \times b_{k+1:t}
+\end{align*}
+
+The backward message \(b_{k+1:t}\) can be computed by a recursive process that runs \textit{backward} from \(t\).
+
+\begin{align*}
+    P(e_{k+1:t} | X_k) &= \dots\\
+    &= \sum_{x_{k+1}} P(e_{k+1}|x_{k+1}) P(e_{k+2:t}|x_{k+1}) P(x_{k+1}|X_k)
+\end{align*}
+
+Using the message notation, we have \(b_{k+1:t} = BACKWARD(b_{k+2:t}, e_{k+1})\).
+
+\begin{center}
+    \includegraphics[scale=0.6]{img/fwdbwd.png}
+\end{center}
+
+\subsubsection{Finding the most likely sequence}
+...
+
+\subsection{HMMs and DBNs}
+...
+
+\section{Making Complex decisions}
+Here, we deal with \textbf{sequential decision problems}, where the agent's utility depends on a sequence of decisions.
+
+\subsection{Sequential Decision Problems}
+\begin{center}
+    \includegraphics[scale=0.41]{img/4x3.png}
+\end{center}
+%The \textbf{transition model} desribes the outcome of each action in each state. Here, the outcome is stochastic, so we write \(P(s'|s,a)\) to denote the probability of reaching state \(s'\) if action \(a\) is done in state \(s\). We will assume that the transitions are \textbf{Markovian} in the sense that the probability of reaching \(s'\) from \(s\) depends only on \(s\) and not on the history of earlier states.
+
+%We must specify the utility function for the agent. Because the decision problem is sequential, the utility function will depend on a sequence of states - an \textbf{environment history}. For now, we simply say that the agent receives a reward \(R(s)\) in each state. Also for now the utility of an environment history is the sum of rewards received.
+
+A sequential decision problem for a fully observable, stochastic environment with an Markovian transition model (the probability of reaching \(s'\) from \(s\) depends only on \(s\) and not on the history of earlier states)
+ and additive rewards is called a \textbf{Markov decision process}, or \textbf{MDP}, and consists of 
+\begin{itemize}
+    \item
+        a set of states (with an initial state \(s_0\))        
+    \item
+        a set \(ACTIONS(s)\) in each state
+    \item
+        a transition model \(P(s'|s,a)\)
+    \item
+        and a reward function \(R(s)\)
+\end{itemize}
+
+\bigbreak
+
+Any fixed action sequence won't solve the problem, because the agent might end up in a state other than the goal. Therefore, a solution must specify what the agnt should do for \textit{any} state that the agent might reach. 
+
+\(\Rightarrow\) Policy \(\pi\), where \(\pi(s)\) is the action recommended by the policy \(\pi\) for state \(s\).
+
+Each time a given policy is executed starting from the initial state, the stochastic nature of the environment may lead to a different enviornment history. The quality of a policy is therefore measured by the expected utility of the possible environment histories generated by the policy. An \textbf{optimal policy} is a policy that yields the highest expected utility and is denoted as \(\pi^*\).
+
+The careful balancing of risk and reward is a characteristic of MDPs that does not arise in deterministic search problems.
+
+\begin{center}
+    \includegraphics[scale=0.4]{img/4x3cont.png}
+\end{center}
+
+
+\subsubsection{Utilities over time}
+Utility function on environmental histories: \(U_h([s_0, s_1, \dots, s_n])\)
+
+\textbf{Finite horizon}: there is a fixed time \(N\) after which nothin matters - the game is over so to speak (\(U_h([s_0, \dots, s_{N+k}]) = U_h([s_0, \dots, s_N])\)). With a finite horizon, the optimal action in a given state could change over time (because for example, the time is running out and I have to take more risk in order to achieve a goal). We say that the optimal policy for a finite horizon is \textbf{nonstationary}.
+
+\textbf{Inifinte horizon}: With no fixed time limit, there is no reason to behave differently in the same state at different times. Hence, the optimal action depends only on the current state, and the optimal policy is \textbf{stationary}.
+
+\bigbreak
+
+We assume that preferences on state sequences are \textbf{stationary},
+\[([s, s_0, s_1, s_2 \dots] \succ [s, s_0', s_1', s_2', \dots]) \Leftrightarrow ([s_0, s_1, s_3 \dots] \succ [s_0', s_1', s_2', \dots]) \]
+"If you prefere one future to another starting tomorrow, then you should still prefer that future if it were to start today instead."
+
+Under this assumption, there are only two coherent ways to assign utilities to sequences:
+\begin{itemize}
+    \item
+        \textbf{Additive rewards:} The utility of a state sequence is
+        \[U_h(s_0, s_1, s_2, \dots) = R(s_0) + R(s_1) + R(s_2) + \dots\]
+    \item
+        \textbf{Discounted reward:} The utility of a state sequence is 
+        \[U_h(s_0, s_1, s_2, \dots) = R(s_0) + \gamma R(s_1) + \gamma^2 R(s_2) + \dots\]
+        where the \textbf{discount factor} \(\gamma\) is a number between \(0\) and \(1\). The discount factor decribes the preference of an agent for current rewards over future rewards (\(\gamma = 1\): additive rewards).
+\end{itemize}
+
+When we choose an infinite horizon, environmental histories might be infinitely long, and utilities with undiscounted rewards might be infinte. Comparing state sequences with utility \(+\infty\) is difficult. Three solutions:
+\begin{enumerate}
+    \item
+        With discounted rewards, the utility of an infinite sequence is finite. If \(\gamma < 1\) and rewards are bounded by \(\pm R_{max}\), we have
+        \[U_h([s_0, s_1, s_2, \dots]) = \sum_{t=0}^{\infty} \gamma^t R(s_t) \leq \sum_{t=0} ^{\infty} \gamma^tR_{max} = R_{max}/(1-\gamma)\]
+    \item
+        If the environment contains terminal states and if the agent is guaranteed to get to one eventually (has \textbf{proper policy}), we will never need to compare infinite sequences
+    \item
+        Infinite sequences can be compared in terms of the \textbf{average reward} per time step
+\end{enumerate}
+
+\subsubsection{Optimal policies and the utilities of states}
+We assume the agent is in some initial state \(s\) and define \(S_t\) to be the state the agent reaches at time \(t\) when executing a particular policy \(\pi\).
+
+The expected utility obtained by executing \(\pi\) starting in \(s\) is given by
+\[U^{\pi}(s) = E[\sum_{t=0}^{\infty} \gamma^t R(S_t)]\]
+where the expectation is with respect to the probability distribution over state sequences determined by \(s\) and \(\pi\).
+
+\textbf{Optimal policies:} \(\pi_s^* = argmax_{\pi} U^{\pi}(s)\)
+
+When using discounted utilities with infinite horizons, the optimal policy is independent of the starting state.
+
+The utility function \(U(s)\) (\(= U^{\pi^*(s)}\)) allows the agent to choose the action that maximizes the expected utility of the subsequent state:
+\[\pi^*(s) = argmax_{a \in A(s)} \sum_{s'} P(s'|s,a) U(s')\]
+
+\subsection{Value Iteration}
+The basic idea is to calculate the utility of each state and then use the state utilities to select an optimal action in each state.
+
+\subsubsection{The Bellman equation for utilities}
+The utility of a state is the immediate reward for that state plus the expected discounted utility for the next state, assuming that the agent chooses the optimal action. That is, the utility of a state is given by
+\[U(s) = R(s) + \gamma \max_{a\in A(s)} \sum_{s'} P(s'|s,a) U(s')\]
+called \textbf{Bellman equation}.
+
+\subsubsection{The value iteration algorithm}
 
 
 
 
 
 
-
-
-
-
-
-
+%ficken,desisses (Dient als marker zum schnellen hinjumpen)
 \newpage
 \section{Russel, Norvig: Artificial Neural Networks}
 \subsection{Neural Network structures}
@@ -687,5 +855,6 @@ One problem with the first order Markov assumption is, that it might not model t
         \[\frac{\partial Loss_k}{\partial w_{j,k}} = -2(y_k -a_k) \frac{\partial a_k}{\partial w_{j,k}} = \dots = -a_j \Delta_k\]
         with \(\Delta_k = g'(in_k) \sum_j w_{k,j} \Delta_j\)
 \end{itemize}
+
 \end{document}
 
