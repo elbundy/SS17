@@ -73,7 +73,6 @@ static void writeOFF(const char* filename, const Mat& matXYZ, const Mat color, d
         for(int x = 0; x < matXYZ.cols; x++)
         {
             Vec3f point = matXYZ.at<Vec3f>(y, x);
-            if(fabs(point[2] - max_z) < FLT_EPSILON || fabs(point[2]) > max_z) continue;
             numPoints++;
         }
     }
@@ -117,10 +116,26 @@ static cv::Mat_<cv::Vec3f> calcXYZ(const Mat disparity32F, const Mat Q)
 
 int main(int argc, char** argv )
 {
-    boolean calibrate = false;
-    if(strcmp(argv[1], "--calibrate") == 0){
+    bool calibrate = false;
+    if(argc < 2){
+    }
+    else if(strcmp(argv[1], "--calibrate") == 0 || strcmp(argv[1], "-c") == 0){
         calibrate = true;
     }   
+
+    //Parameters we might need
+    Mat R, T, E, F;
+    Mat R1, R2, P1, P2, Q;
+    Rect validRoi1;
+    Rect validRoi2;
+
+    Mat cameraMatrix1;
+    Mat distCoeffs1;
+    Mat cameraMatrix2;
+    Mat distCoeffs2;
+
+    vector<Mat> imageList;
+    vector<Mat> imageList2;
 
     if(calibrate){
         /**********************************************************************/
@@ -142,8 +157,6 @@ int main(int argc, char** argv )
 
         //Capture images from both streams simultanously and save into list
         int numImages = 10;
-        vector<Mat> imageList;
-        vector<Mat> imageList2;
         captureImages(cap, cap2, imageList, imageList2, numImages);
         std::cout << imageList.size() << " " << imageList2.size() << std::endl;
 
@@ -153,11 +166,10 @@ int main(int argc, char** argv )
 
         //Use the images in your list from the video stream for intrinsic calibration of each camera
         //feel free to reuse code from Ex4 / the opencv tutorial
-        Mat cameraMatrix1 = Mat::eye(3, 3, CV_64F);
-        Mat distCoeffs1 = Mat::zeros(8, 1, CV_64F);
-
-        Mat cameraMatrix2 = Mat::eye(3, 3, CV_64F);
-        Mat distCoeffs2 = Mat::zeros(8, 1, CV_64F);
+        cameraMatrix1 = Mat::eye(3, 3, CV_64F);
+        distCoeffs1 = Mat::zeros(8, 1, CV_64F);
+        cameraMatrix2 = Mat::eye(3, 3, CV_64F);
+        distCoeffs2 = Mat::zeros(8, 1, CV_64F);
 
         //Calibrate
         CameraCalibration calibration(imageList, boardSize, squareSize);
@@ -183,40 +195,72 @@ int main(int argc, char** argv )
 
         //use the imagepoints, objectpoints and intrinsic calibration as input for the stereo calibration
         //set at least the CALIB_FIX_INTRINSIC flag to use your prior estimation of instrinsic paramters
-        Mat R, T, E, F;
         double reprojectionError = stereoCalibrate(objectPoints, imagePoints1, imagePoints2, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageList[0].size(), R, T, E, F, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 1e-6), CALIB_FIX_INTRINSIC);
 
         //estimate the parameters for stereo rectification
-        Mat R1, R2, P1, P2, Q;
-        Rect validRoi1;
-        Rect validRoi2;
 
-        stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageList[0].size(), R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, Size(), &validRoi1, &validRoi2 );
+        stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageList[0].size(), R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, imageList[0].size(), &validRoi1, &validRoi2 );
 
-        //TODO
         //save your estimated parameters
         //OpenCV FileStorage is a good option
         //implement a setting to change between starting a new calibration and loading your previously saved parameters
         //setting can be hardcoded
-
+        cv::FileStorage storage("params.yml", cv::FileStorage::WRITE);
+        storage << "camMat1" << cameraMatrix1; 
+        storage << "camMat2" << cameraMatrix2; 
+        storage << "imgList1" << imageList;
+        storage << "imgList2" << imageList2;
+        storage << "dist1" << distCoeffs1; 
+        storage << "dist2" << distCoeffs2; 
+        storage << "R" << R; 
+        storage << "T" << T; 
+        storage << "E" << E;
+        storage << "F" << F;
+        storage << "R1" << R1;
+        storage << "R2" << R2;
+        storage << "P1" << P1;
+        storage << "P2" << P2;
+        storage << "Q" << Q;
+        storage << "roi1" << validRoi1;
+        storage << "roi2" << validRoi2;
+        storage.release();  
     }
     else{
-        //TODO
         //Read from memory
+        cv::FileStorage storage("params.yml", cv::FileStorage::READ);
+        storage["camMat1"] >> cameraMatrix1; 
+        storage["camMat2"] >> cameraMatrix2; 
+        storage["imgList1"] >> imageList;
+        storage["imgList2"] >> imageList2;
+        storage["dist1"] >> distCoeffs1; 
+        storage["dist2"] >> distCoeffs2; 
+        storage["R"] >> R; 
+        storage["T"] >> T; 
+        storage["E"] >> E;
+        storage["F"] >> F;
+        storage["R1"] >> R1;
+        storage["R2"] >> R2;
+        storage["P1"] >> P1;
+        storage["P2"] >> P2;
+        storage["Q"] >> Q;
+        storage["roi1"] >> validRoi1;
+        storage["roi2"] >> validRoi2;
+        storage.release(); 
     }
 
 
     /**********************************************************************/
     /*********Stereo Matching and 3D Point Cloud reconstruction************/
     /**********************************************************************/
-    //TODO
     //load your parameters or use the just estimated ones (depending on setting)
     //depending on your implementation you might want to refactor your code ;)
+    //Already done
 
 
-    //TODO
     //compute the mapping for stereo rectification given the estimated paramaters
     Mat rmap[2][2];
+    initUndistortRectifyMap(cameraMatrix1, distCoeffs1, R1, P1, imageList[0].size(),CV_16SC2, rmap[0][0], rmap[0][1]);
+    initUndistortRectifyMap(cameraMatrix2, distCoeffs2, R2, P2, imageList2[0].size(), CV_16SC2, rmap[1][0], rmap[1][1]);
 
 
     //TODO
@@ -225,30 +269,77 @@ int main(int argc, char** argv )
     //especially: SADWindowSize and numberOfDisparities
     Mat rimg, rimg2;
 
+
     //Images in which we will save our disparities
     Mat imgDisparity32F;
     Mat imgDisparity8U;
 
-    //TODO
     //setup stereo blockmatcher
+    StereoBM sbm;
+    sbm.state->SADWindowSize = 9;
+    sbm.state->numberOfDisparities = 112;
+    sbm.state->preFilterSize = 5;
+    sbm.state->preFilterCap = 61;
+    sbm.state->minDisparity = -39;
+    sbm.state->textureThreshold = 507;
+    sbm.state->uniquenessRatio = 0;
+    sbm.state->speckleWindowSize = 0;
+    sbm.state->speckleRange = 8;
+    sbm.state->disp12MaxDiff = 1;
 
-
-    //TODO
     //set valid rois in block matcher
+    sbm.state->roi1 = validRoi1;
+    sbm.state->roi2 = validRoi2;
 
     //TODO
     //show your rectified video streams
     //estimate the disparity using the previously setup StereoBM and show the result
     int keyPress = -1;
+
+    cv::VideoCapture cap = VideoCapture(0);
+    if(!cap.isOpened())
+        return -1;
+    cap.set(CV_CAP_PROP_FPS, 10);
+
+
+    cv::VideoCapture cap2 = VideoCapture(1);
+    if(!cap2.isOpened())
+        return -1;
+    cap2.set(CV_CAP_PROP_FPS, 10);
+
+
     while(true){
-        //TODO - remove break ;)
-        break;
+        Mat frame;
+        Mat frame2;
 
-        //TODO
-        //capture frames from your video streams
+        //Take current frame from webcam
+        cap.read(frame);
+        if(frame.empty()){
+            std::cerr << "Blank frame grabbed, error!/n";
+            break;
+        }
 
-        //TODO
+        cap2.read(frame2);
+        if(frame2.empty()){
+            std::cerr << "Blank frame grabbed, error!/n";
+            break;
+        }
+
+        //Show
+        imshow("Webcam 1", frame);
+        imshow("Webcam 2", frame2);
+
+
         //stereo rectify the images using the previously computed mappings
+        Mat recFrame;
+        Mat recFrame2;
+        remap(frame, recFrame, rmap[0][0], rmap[0][1],INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
+        remap(frame2, recFrame2, rmap[1][0], rmap[1][1],INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
+        imshow("Webcam 1 rect", recFrame);
+        imshow("Webcam 2 rect", recFrame2);
+
+
+        if(waitKey(10) >= 0)
 
         //TODO
         //compute the disparity image using the stereo block matcher
