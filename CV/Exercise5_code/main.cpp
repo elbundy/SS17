@@ -74,6 +74,9 @@ static void writeOFF(const char* filename, const Mat& matXYZ, const Mat color, d
         for(int x = 0; x < matXYZ.cols; x++)
         {
             Vec3f point = matXYZ.at<Vec3f>(y, x);
+            if(fabs(point[2] - max_z) < FLT_EPSILON || fabs(point[2]) > max_z){ 
+                continue;
+            }
             numPoints++;
         }
     }
@@ -86,7 +89,9 @@ static void writeOFF(const char* filename, const Mat& matXYZ, const Mat color, d
         for(int x = 0; x < matXYZ.cols; x++)
         {
             Vec3f point = matXYZ.at<Vec3f>(y, x);
-            if(fabs(point[2] - max_z) < FLT_EPSILON || fabs(point[2]) > max_z) continue;
+            if(fabs(point[2] - max_z) < FLT_EPSILON || fabs(point[2]) > max_z){ 
+                continue;
+            }
 
             Vec3b intensity = color.at<Vec3b>(y, x);
             uchar blue = intensity.val[0];
@@ -108,22 +113,31 @@ static cv::Mat_<cv::Vec3f> calcXYZ(const Mat disparity32F, const Mat Q)
 {
     cv::Mat_<cv::Vec3f> XYZ(disparity32F.size());   // Output point cloud
 
+    std::cout << disparity32F.size() << std::endl;
     //calculate xyz coordinates
     for(int row=0; row<disparity32F.rows; row++){
         for(int col=0; col<disparity32F.cols; col++){
+            if(disparity32F.at<float>(row, col) <= 0.f){
+                Vec3f sol(0, 0, 100000);
+                XYZ(row, col) = sol;
+                continue;
+            }
             //Q \cdot (x, y, disparity, 1)^T = (X, Y, Z, W)^T 
-            Mat_<float> vec(4,1);
+            Mat_<double> vec(4,1);
             vec(0,0) = row; //x
             vec(1,0) = col; //y
             vec(2,0) = disparity32F.at<float>(row,col);
             vec(3,0) = 1; 
-            Mat_<float> mult = Q * vec;
+            Mat_<double> mult = Q * vec;
 
             //3-dim coords: (X/W, Y/W, Z/W)
-            Vec3f sol(mult(0,0)/mult(3,0), mult(1,0)/mult(3,0), mult(3,0)/mult(3,0));
+            Vec3f sol((float)(mult(0,0)/mult(3,0)), mult(1,0)/mult(3,0), mult(2,0)/mult(3,0));
+            std::cout << sol << std::endl;
             XYZ(row, col) = sol;
         }
     }
+    //reprojectImageTo3D(disparity32F, XYZ, Q);
+    //std::cout << XYZ << std::endl;
     return XYZ;
 }
 
@@ -175,7 +189,7 @@ int main(int argc, char** argv )
 
         //Set boardsize and squaresize of calibration pattern
         Size boardSize = Size(9,7);
-        float squareSize = 25.0;
+        float squareSize = 0.0025;
 
         //Use the images in your list from the video stream for intrinsic calibration of each camera
         //feel free to reuse code from Ex4 / the opencv tutorial
@@ -208,11 +222,13 @@ int main(int argc, char** argv )
 
         //use the imagepoints, objectpoints and intrinsic calibration as input for the stereo calibration
         //set at least the CALIB_FIX_INTRINSIC flag to use your prior estimation of instrinsic paramters
+        std::cout << " 1 " << std::endl;
         double reprojectionError = stereoCalibrate(objectPoints, imagePoints1, imagePoints2, cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageList[0].size(), R, T, E, F, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 1e-6), CALIB_FIX_INTRINSIC);
 
         //estimate the parameters for stereo rectification
 
         stereoRectify(cameraMatrix1, distCoeffs1, cameraMatrix2, distCoeffs2, imageList[0].size(), R, T, R1, R2, P1, P2, Q, CALIB_ZERO_DISPARITY, -1, imageList[0].size(), &validRoi1, &validRoi2 );
+        std::cout << " 2 " << std::endl;
 
         //save your estimated parameters
         //OpenCV FileStorage is a good option
@@ -293,8 +309,6 @@ int main(int argc, char** argv )
     //Prefiltering is used to normalize occlusion, lighting, etc.
     //sbm.state->SADWindowSize = 9;
     //sbm.state->numberOfDisparities = 112; //gets set in constructor
-    //sbm.state->preFilterSize = 5;
-    //sbm.state->preFilterCap = 61;
     //sbm.state->textureThreshold = 507; //minimal amount of texture needed
     //sbm.state->uniquenessRatio = 0;
     //sbm.state->speckleWindowSize = 0;
@@ -303,14 +317,18 @@ int main(int argc, char** argv )
 
     //experiment with your stereo block matching settings
     //especially: SADWindowSize and numberOfDisparities
-    int ndisparities = 16*6; //has to be multiple of 16 
-    int SADWindowSize = 21; // must be odd
+    int ndisparities = 16*10; //has to be multiple of 16 
+    int SADWindowSize = 19; // must be odd
     StereoBM sbm(0, ndisparities, SADWindowSize); //Preset: BASIC_PRESET
     //set minDisparity
     sbm.state->minDisparity = 0; 
     //set valid rois in block matcher
     sbm.state->roi1 = validRoi1;
     sbm.state->roi2 = validRoi2;
+
+
+    sbm.state->preFilterSize = 5;
+    sbm.state->preFilterCap = 61;
 
     //Initialize VideoCaptures
     cv::VideoCapture cap = VideoCapture(0);
@@ -353,7 +371,13 @@ int main(int argc, char** argv )
 
         //compute the disparity image using the stereo block matcher
         //use CV_32F as output
-        sbm(rimg, rimg2, imgDisparity32F, CV_32F);
+        Mat rimg_g, rimg2_g;
+        rimg.convertTo(rimg_g, CV_8U);
+        cvtColor(rimg_g, rimg_g, CV_BGR2GRAY);
+        rimg2.convertTo(rimg2_g, CV_8U);
+        cvtColor(rimg2_g, rimg2_g, CV_BGR2GRAY);
+        sbm(rimg_g, rimg2_g, imgDisparity32F, CV_32F);
+
 
         //Check for minimum and maximum disparity values
         double minVal, maxVal;
@@ -362,6 +386,7 @@ int main(int argc, char** argv )
         //convert disparity to CV_8UC1 with range 0-255 to display your resulting disparity image
         imgDisparity32F.convertTo(imgDisparity8U, CV_8UC1, 255/(maxVal-minVal));
         imshow("Disparity", imgDisparity8U);
+        //std::cout << imgDisparity32F << std::endl;
 
         if(waitKey(10) >= 0)
             keyPress = 32;
@@ -376,7 +401,8 @@ int main(int argc, char** argv )
 
             //saves 3D points to OFF file given Mat of 3D coordinates, texture/color (same size) and maximum depth value
             //matXYZ has to be of type cv::Mat_<cv::Vec3f> containing X,Y,Z coordinates
-            writeOFF("point_cloud.off", xyz, rimg, 200.0);
+            writeOFF("point_cloud.off", xyz, rimg, 10000);
+            break;
         }
 
     }
