@@ -800,61 +800,82 @@ The utility of a state is the immediate reward for that state plus the expected 
 called \textbf{Bellman equation}.
 
 \subsubsection{The value iteration algorithm}
+\begin{center}
+    \includegraphics[scale=0.4]{img/valiter.png}
+\end{center}
 
+For \(n\) possible states, there are \(n\) Bellman equations, one for each state. The \(n\) (non-linear) equations contain \(n\) unknowns. If we apply the Bellman update infinetly often, we are guaranteed to reach an equilibrium, in which case the final utility values must be solutions to the Bellman equations. In fact, they are also the \textit{unique} solutions, and the corresponding policy is optimal.
 
+\subsection{Policy Iteration}
+The policy iteration algorithm alternates the following two steps, beginning from some initilial policy \(\pi_0\):
+\begin{enumerate}
+    \item
+        \textbf{Policy evaluation}: given a policy \(\pi_i\), calculate \(U_i = U^{\pi_i}\), the utility for each state if \(\pi_i\) were to be executed
+        \[U_i(s) = R(s) + \gamma \sum_{s'} P(s'|s, \pi_i(s))U_i(s')\]
+    \item
+        \textbf{Policy improvement}: calculate a new MEU policy \(\pi_{i+1}\), using one-step look-ahead based on \(U_i\)
+        \[\pi(s) = argmax_{a \in A(s)} \sum_{s'} P(s'|s,a) U(s')\]
+\end{enumerate}
+The algorithm terminates when the policy improvement yields no change in the maximum expected utilities. The important point is that these equations are linear, because the max operator has been removed. For \(n\) states, we have \(n\) linear equations with \(n\) unknowns, which can be solved exactly in time \(O(n^3)\).
 
+\subsection{Partially Observable MDPs}
+In an \textbf{partially observable} environment, the agent does not necessarily know which state it is in, so it cannot execute the action \(\pi(s)\) recommended for that state. Furthermore, the utility of a state \(s\) and the optimal action in \(s\) depend not just on \(s\), but also on how much the agent knows when it is in \(s\). We cannot avoid POMDPs, because the real world is one.
 
+\subsubsection{Definition of POMDPs}
+A partially observable MDP is a MDP (transition model, actions, reward function) together with an \textbf{observation model} \(O\) that is stationary and has the sensor Markov property: \(O(s,e) = P(e|s)\).
 
+The optimal policy in an POMDP is a function \(\pi(b)\) where \(b\) is the \textbf{belief state} (probability distribution over states). The optimal action depends only on the agent's current belief state, it does not depend on the actual state.
 
-%ficken,desisses (Dient als marker zum schnellen hinjumpen)
-\newpage
-\section{Russel, Norvig: Artificial Neural Networks}
-\subsection{Neural Network structures}
+If \(b(s)\) (the probability/belief degree that agent is in \(s\)) is the previous belief state and the agent does an action \(a\) and then perceives \(e\), then the new belief state is
+\[b'(s') = \alpha P(e|s') \sum_s P(s'|s,a)b(s)\]
+
+\textbf{POMDP decision cycle}:
 \begin{itemize}
     \item
-        A link from unit \(i\) to \(j\) serves to propagate the activation \(a_i\) from \(i\) to \(j\)
+        Given the current belief state \(b\), execute the action \(a=\pi^*(b)\)
     \item
-        Each link has a numeric weight \(w_{i,j}\)
+        Receive percept \(e\)
     \item
-        Each unit has a dummy input \(a_0 = 1\) with an associated weight \(w_{0,j}\)
-    \item
-        Each unit \(j\) first computes a weighted sum of its inputs: \[in_j = \sum_{i=0}^n w_{i,j} a_i\]
-    \item
-        Then it applies an activation function \(g\) to this sum to derive the output:
-        \[a_j = g(in_j) = g(\sum_{i=0}^n w_{i,j} a_i)\]
-    \item
-        Activation function: perceptron (hard) vs. sigmoid perceptron (soft) threshold
+        Update the current belief state and repeat
 \end{itemize}
-\subsection{Multilayer feed-forward neural networks}
+
+\bigbreak
+
+... Sehr viel exotischer Stuff. Think I'll skip this, sorry Mr. Prof. No hate.
+
+\section{Learning from Examples}
+An agent is \textbf{learning} if its improving its performance on future tasks after making observations about the world.
+
+Reasons for Learning:
 \begin{itemize}
     \item
-        Thinking of neural network as (vector) function \(h_w(x)\), which is fully parameterized by the weights \(w\) 
+        The designer might not anticipate all possible situations that the agent might find itself in
     \item
-        As long as we can calculate the derivatives of such expressions with respect to the weights, we can use the gradient-descent loss-minimization method to train the network
+        The designer can not anticipate all changes over time
+    \item
+        Sometimes human programmers have no idea how to program a solution themselves
 \end{itemize}
-\subsection{Learning in multilayer networks}
+
+\subsection{Forms of Learning}
+Any component of an agent can be improved by learning from data. Improvements, and the techniques used to make them, depend on four major factors:
 \begin{itemize}
     \item
-        Loss function is additive across the components of the error vector.
-        For the L2-Loss: \[\frac{\partial}{\partial w} Loss(w) = \frac{\partial}{\partial w} \abs{y-h_w(X)}^2 = \dots = \sum_k \frac\partial{\partial w} (y_k - a_k)^2\] 
+        Which component is to be improved
     \item
-        Each term in the final summation is the gradient of the loss for the \(k\)th output, computed as if the other outputs did not exist\\
-        \(\Rightarrow\) we can decompose an \(m\)-output learning problem into \(m\) learning problems
+        What prior knowledge the agent already has
     \item
-        The error at the outer layer is clear, at hidden layers it is mysterious \(\Rightarrow\) backpropagate error 
+        What representation is used for the data and the component
     \item
-        \dots
+        What feedback is available to learn from ((semi-)supervised, unsupervised or reinforcement)
 \end{itemize}
-\subsubsection{Derivation}
-\begin{itemize}
-    \item
-        We compute just the gradient for \(Loss_k = (y_k - a_k)^2\) at the \(k\)th output 
-    \item
-        The gradient w.r.t to weights connecting the hidden layer to the output layer will be zero exept for weights \(w_{j,k}\) that connect to the \(k\)th output unit
-    \item
-        \[\frac{\partial Loss_k}{\partial w_{j,k}} = -2(y_k -a_k) \frac{\partial a_k}{\partial w_{j,k}} = \dots = -a_j \Delta_k\]
-        with \(\Delta_k = g'(in_k) \sum_j w_{k,j} \Delta_j\)
-\end{itemize}
+
+\subsection{Supervised Learning}
+Given a \textbf{training set} of \(N\) example input-output pairs
+\[(x_1, y_1), (x_2, y_2), \dots, (x_N, y_N)\]
+where each \(y_j\) was generated by an unknown function \(y = f(x)\) discover a function \(h\) that approximates the true function \(f\), called \textit{hypothesis}. Learning is a search through the space of possible hypotheses for one that will perfom well, even on new examples beyond the training set. In this case we say the hypotesis \textbf{generalizes} well. Sometimes the function \(f\) is stochastic, why we have to learn a conditional probability \(P(Y|x)\). In general, there is trade-off between complex hypotheses that fit the training data well and simpler hypotheses that may generalize better.
+
+\subsection{The decision tree representation}
+
 
 \end{document}
 
