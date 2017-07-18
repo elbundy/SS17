@@ -60,6 +60,7 @@ void captureImages(VideoCapture cap, VideoCapture cap2, vector<Mat> &imageList, 
     }
 }
 
+
 //saves 3D points to OFF file given Mat of 3D coordinates, texture (same size) and maximum z value
 //matXYZ has to be of type cv::Mat_<cv::Vec3f> containing X,Y,Z coordinates
 static void writeOFF(const char* filename, const Mat& matXYZ, const Mat color, double max_z = 200.0)
@@ -102,15 +103,27 @@ static void writeOFF(const char* filename, const Mat& matXYZ, const Mat color, d
 
 
 /*********************************************************************************************/
-//TODO
 //calculate 3D points given disparity and matrix Q (returned by stereoRectify)
 static cv::Mat_<cv::Vec3f> calcXYZ(const Mat disparity32F, const Mat Q)
 {
-    cv::Mat_<cv::Vec3f> XYZ;   // Output point cloud
+    cv::Mat_<cv::Vec3f> XYZ(disparity32F.size());   // Output point cloud
 
-    //TODO
     //calculate xyz coordinates
+    for(int row=0; row<disparity32F.rows; row++){
+        for(int col=0; col<disparity32F.cols; col++){
+            //Q \cdot (x, y, disparity, 1)^T = (X, Y, Z, W)^T 
+            Mat_<float> vec(4,1);
+            vec(0,0) = row; //x
+            vec(1,0) = col; //y
+            vec(2,0) = disparity32F.at<float>(row,col);
+            vec(3,0) = 1; 
+            Mat_<float> mult = Q * vec;
 
+            //3-dim coords: (X/W, Y/W, Z/W)
+            Vec3f sol(mult(0,0)/mult(3,0), mult(1,0)/mult(3,0), mult(3,0)/mult(3,0));
+            XYZ(row, col) = sol;
+        }
+    }
     return XYZ;
 }
 
@@ -256,46 +269,50 @@ int main(int argc, char** argv )
     //depending on your implementation you might want to refactor your code ;)
     //Already done
 
-
     //compute the mapping for stereo rectification given the estimated paramaters
     Mat rmap[2][2];
-    initUndistortRectifyMap(cameraMatrix1, distCoeffs1, R1, P1, imageList[0].size(),CV_16SC2, rmap[0][0], rmap[0][1]);
-    initUndistortRectifyMap(cameraMatrix2, distCoeffs2, R2, P2, imageList2[0].size(), CV_16SC2, rmap[1][0], rmap[1][1]);
+    initUndistortRectifyMap(cameraMatrix1, distCoeffs1, R1, P1, imageList[0].size(), CV_32FC1, rmap[0][0], rmap[0][1]);
+    initUndistortRectifyMap(cameraMatrix2, distCoeffs2, R2, P2, imageList2[0].size(), CV_32FC1, rmap[1][0], rmap[1][1]);
 
-
-    //TODO
-    //setup your disparity images and blockmatcher
-    //experiment with your stereo block matching settings
-    //especially: SADWindowSize and numberOfDisparities
+    //Rectified images
     Mat rimg, rimg2;
-
-
+    //Distorted, nonrectified images
+    Mat frame, frame2;
     //Images in which we will save our disparities
     Mat imgDisparity32F;
     Mat imgDisparity8U;
 
     //setup stereo blockmatcher
-    StereoBM sbm;
-    sbm.state->SADWindowSize = 9;
-    sbm.state->numberOfDisparities = 112;
-    sbm.state->preFilterSize = 5;
-    sbm.state->preFilterCap = 61;
-    sbm.state->minDisparity = -39;
-    sbm.state->textureThreshold = 507;
-    sbm.state->uniquenessRatio = 0;
-    sbm.state->speckleWindowSize = 0;
-    sbm.state->speckleRange = 8;
-    sbm.state->disp12MaxDiff = 1;
+    //numDisp, sadwindowsize
+    //the BM computes a matching function based on a window (sum of absolute distance)
+    //the larger, the fewer false matches
+    //assumption: disparity is the same over the area of the window
+    //the corresponding point of a point (x,y) in the left image must be at the same location (x,y) in the right image or to the left side of it
+    //minDispartity tells BM how much to the left the point must at least be
+    //minDisparity + numberOfDisparities = maxDisparity
+    //Prefiltering is used to normalize occlusion, lighting, etc.
+    //sbm.state->SADWindowSize = 9;
+    //sbm.state->numberOfDisparities = 112; //gets set in constructor
+    //sbm.state->preFilterSize = 5;
+    //sbm.state->preFilterCap = 61;
+    //sbm.state->textureThreshold = 507; //minimal amount of texture needed
+    //sbm.state->uniquenessRatio = 0;
+    //sbm.state->speckleWindowSize = 0;
+    //sbm.state->speckleRange = 8;
+    //sbm.state->disp12MaxDiff = 1;
 
+    //experiment with your stereo block matching settings
+    //especially: SADWindowSize and numberOfDisparities
+    int ndisparities = 16*6; //has to be multiple of 16 
+    int SADWindowSize = 21; // must be odd
+    StereoBM sbm(0, ndisparities, SADWindowSize); //Preset: BASIC_PRESET
+    //set minDisparity
+    sbm.state->minDisparity = 0; 
     //set valid rois in block matcher
     sbm.state->roi1 = validRoi1;
     sbm.state->roi2 = validRoi2;
 
-    //TODO
-    //show your rectified video streams
-    //estimate the disparity using the previously setup StereoBM and show the result
-    int keyPress = -1;
-
+    //Initialize VideoCaptures
     cv::VideoCapture cap = VideoCapture(0);
     if(!cap.isOpened())
         return -1;
@@ -307,18 +324,16 @@ int main(int argc, char** argv )
         return -1;
     cap2.set(CV_CAP_PROP_FPS, 10);
 
-
+    //show your rectified video streams
+    //estimate the disparity using the previously setup StereoBM and show the result
+    int keyPress = -1;
     while(true){
-        Mat frame;
-        Mat frame2;
-
-        //Take current frame from webcam
+        //Take current frame from webcams
         cap.read(frame);
         if(frame.empty()){
             std::cerr << "Blank frame grabbed, error!/n";
             break;
         }
-
         cap2.read(frame2);
         if(frame2.empty()){
             std::cerr << "Blank frame grabbed, error!/n";
@@ -329,45 +344,41 @@ int main(int argc, char** argv )
         imshow("Webcam 1", frame);
         imshow("Webcam 2", frame2);
 
-
         //stereo rectify the images using the previously computed mappings
-        Mat recFrame;
-        Mat recFrame2;
-        remap(frame, recFrame, rmap[0][0], rmap[0][1],INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
-        remap(frame2, recFrame2, rmap[1][0], rmap[1][1],INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
-        imshow("Webcam 1 rect", recFrame);
-        imshow("Webcam 2 rect", recFrame2);
+        remap(frame, rimg, rmap[0][0], rmap[0][1], INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
+        remap(frame2, rimg2, rmap[1][0], rmap[1][1], INTER_NEAREST, BORDER_TRANSPARENT, Scalar());
+        //Show
+        imshow("Webcam 1 rect", rimg);
+        imshow("Webcam 2 rect", rimg2);
 
-
-        if(waitKey(10) >= 0)
-
-        //TODO
         //compute the disparity image using the stereo block matcher
         //use CV_32F as output
+        sbm(rimg, rimg2, imgDisparity32F, CV_32F);
 
-        //TODO
         //Check for minimum and maximum disparity values
+        double minVal, maxVal;
+        minMaxLoc(imgDisparity32F, &minVal, &maxVal);
 
-        //TODO
         //convert disparity to CV_8UC1 with range 0-255 to display your resulting disparity image
+        imgDisparity32F.convertTo(imgDisparity8U, CV_8UC1, 255/(maxVal-minVal));
+        imshow("Disparity", imgDisparity8U);
 
-        //TODO
+        if(waitKey(10) >= 0)
+            keyPress = 32;
+
         //on keypress calculate the XYZ coordinates given the disparity
         //calculate the XYZ using the matrix Q
         //write the results into an OFF file (use the writeOFF function) show the result in meshlab
         if(keyPress == 32){
             Mat xyz;
-            //TODO implement function
             //reproject the disparity image into 3D space
             xyz = calcXYZ(imgDisparity32F, Q);
 
             //saves 3D points to OFF file given Mat of 3D coordinates, texture/color (same size) and maximum depth value
             //matXYZ has to be of type cv::Mat_<cv::Vec3f> containing X,Y,Z coordinates
             writeOFF("point_cloud.off", xyz, rimg, 200.0);
-
         }
 
     }
-
     return 0;
 }
