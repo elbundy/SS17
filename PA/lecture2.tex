@@ -470,7 +470,138 @@ This can be seen by looking at the \underline{median} distance of the nearest ne
 \[medianDist(d, N) = (1 - \frac{1}{2}^{\frac{1}{N}})^{\frac{1}{d}}\]
 \[\Rightarrow N=5000, d=10: medianDist(10, 5000) \approx 0.52\]
 
-Because of this, we need methods for reducing the dimensionality of our data, witout breaking its structure to hard.
+This shows that distance measures start losing their effectiveness to measure dissimilarity in high dimensional spaces. Because of this, we need methods for reducing the dimensionality of our data, witout breaking its structure to hard.
+
+\bigbreak
+
+"Notorious" example for high dimensional data: \textit{hyperspectral remote sensing image classification}
+
+Satellite image: perfom e.g. aggricultural monitoring: classify type of vegetation via hyperspectral vector (dozens of color channels).
+
+In such classification pipelines, dimensionality reduction is often times one integral component.
+
+\subsection{(k)PCA}
+
+Our known approach to dimensionality reduction: \textbf{PCA} (principle component analysis): We search for an orthogonal basis that is aligned with the "maximum spread" (w.r.t to the covariance of the data). It is a global and unsupervised methode, operating on all datapoints (no labels, finds on globally optimal solution).
+
+PCA is a linear method, which is problematic in certain cases \(\Rightarrow\) Kernel PCA: perform a non-linear mapping of the data, then perfom stadard (linear) PCA on the result. For radial data (inner and outer circle of two classes) we can for example perform a radial transform (space consisting of radius and angle). With the kernel trick, the non-linear mapping and PCA can be merged into one step.
+
+\textit{Objective fuction:} \[J = \sum_{i,j=1}^N(\Phi(x_i) - \Phi(x_j))^T (\Phi(x_i) - \Phi(x_j)) - \lambda(\Phi^T \Phi - 1)\]
+where nonlinear mapping is part of the \(\Phi\).
+
+The \textbf{kPCA} idea had some successfull offsprings:
+\begin{enumerate}
+    \item
+        perform some preprocessing/mapping that operates \underline{non-linearly}
+    \item
+        the dimensionality reduction itself is an operation that operates linearly (linear algebra)
+\end{enumerate}
+
+PCA operates on explicitly given feature vectors \(x_i\). What if we only have access to differences between feature vectors, such as the Euclidean distance \(\norm{x_i - x_j}_2^2\)?
+
+\(\Rightarrow\) This is a closely related problem, PCA on distances is called \textbf{MDS}.
+
+\subsection{Multidimensional Scaling (MDS)}
+\textit{Task:} Reconstruct a set of points (potentially in a lower dimension) from their differences. MDS computes the "best" (in a least square sense) coordinates up to rotation, translation and mirroring (axis reversal).
+
+\textit{Mathmatical problem formulation:}
+\begin{itemize}
+    \item
+        Let \(S = \{x_1, \dots, x_N\}, x_i \in \mathbb{R}^d\). 
+    \item
+        Let \(X\) denote a matrix consisting of all samples, \(X=[x_1, \dots, x_N] \in \mathbb{R}^{d \times N}\).
+    \item
+        Let \(D^2 = [d_{ij}^2]_{i, j \in \{1, \dots, N\}}\), where \(d_{ij}^2 = (x_i - x_j)^T (x_i - x_j)\). 
+    \item
+        Goal: Given \(D^2\), compute \(X\).
+    \item
+        We assume that \(x_1, \dots, x_N\) have zero mean i.e. \(\sum_{i=1}^N x_i = 0\)
+\end{itemize}
+
+Let us consider the distance matrix in terms of \(x\):
+\[d_{ij}^2 = (x_i - x_j)^T(x_i - x_j)=x_i^T x_i + x_j^T x_j - 2 x_i x_j\]
+
+In matrix notation,
+\[D^2 = diag(X^T X) \cdot \vec{1}^T + \vec{1} \cdot diag(X^T X)^T - 2X^TX\]
+where \(diag(A)\) denotes a vector diagonal entries of \(A\), i.e. \(diag(A) = (a_{11}, a_{22}, \dots, a_{NN})^2\), and \(\vec{1}\) denotes a vector of ones, i.e. \(\vec{1} = (1,1,\dots,1)^T \in \mathbb{R}^d\).
+
+Multiply \(D^2\) from left and right with a centering matrix \(C = (I - \frac{1}{N} \vec{1} \ \vec{1}^T)\), and weight the result by \(-\frac{1}{2}\):
+\begin{align*}
+    -\frac{1}{2} C D^2 C &= -\frac{1}{2} (I- \frac{1}{N} \vec{1} \ \vec{1}^T) (diag(X^T X) \cdot \vec{1}^T + \vec{1} \cdot diag(X^T X)^T - 2X^TX)(I- \frac{1}{N} \vec{1} \ \vec{1}^T)\\
+    &= \dots (\text{see lecture, too lazy}) \\
+    &= X^T X
+\end{align*}
+
+This is a matrix factorization problem. If you you compute \(SVD(X^T X) \Rightarrow U \Sigma V \Rightarrow X = \Sigma^{\frac{1}{2}} V\).
+
+MDS is essentially the same thing as PCA, but it operates on distances. We can reduce the dimensionality of our data by:
+\begin{itemize}
+    \item
+        Determining the \(m\) largest eigennvalues and their corresponding eigenvectors
+    \item
+        Dropping the remaining eigenvalue and eigennvectors inside the multiplication
+\end{itemize}
+
+\subsection{ISOMAP algorithm}
+A non-linearity "patch" for MDS. 
+
+Idea: nearby points have their "usual" Euclidean distance. If a pair of points is not within a local neighborhood, the distance between these points is a graph distance (shortest path). We have an all pairs shortest path problem, which can be solved with certain algorithms (Dijstra, \(A^*\), BFS, DFS, ...). Then, run MDS on the resulting distance matrix. 
+
+This procedure is useful if you want to reduce the dimensionality of "swirly" datasets for example.
+
+ISOMAP operates on geodesic distances (like a distance on earths surface). This means that 
+
+\subsection{Locally Linear Embedding}
+\textit{Idea:} Treat the local neighborhood of a point \(x\) as linear. This makes the mapping an overall non-linear mapping consisting of small linear patches.
+
+We can linearily interpolate a point \(x_i\) from its neighbors,
+\[x_i = \sum_{x_j \in N(x_i), j \neq i} w_{ij} x_j, \text{ subject to } \sum_j w_{ij} = 1\]
+and search points \(x'\) in a lower dimensional space, such that
+\[x_i' = \sum_{j \in N(x_i')} w_{ij} x_j'.\]
+
+\textbf{Algorithm:}
+\begin{enumerate}
+    \item
+        Define the neighborhood (\(k\)-nearest neighbors, distance thresholding) 
+    \item
+        Solve for \(w_{ij}\) in the high dimensional space 
+        \[min \sum_{i}\norm{x_i - \sum_{j\in N(x_i)} w_{ij} x_j}_2^2 \text{ subject to } \sum_{j \in N(x_i)} w_{ij} = 1\]%, \ \ \  \forall i \in \{1, \dots. N\}\]
+    \item
+        Solve for \(x_i' \in \mathbb{R}^{d'} (d' \ll d)\):
+        \[\sum_i \norm{x_i' - \sum_{j \in N(x_i)} w_{ij} x_j'}_2^2, \text{ subject to } \frac{1}{N} \cdot \sum_i x_i' \cdot x_i'^T = I, \sum_i x_i' = \vec{0}\]
+        The first constraint says that the covariance is the identity.
+\end{enumerate}
+Nearer point in the original space will result in higher weights.
+
+\textit{Caveats:} 
+\begin{enumerate}
+    \item
+        The idea of LLE is really nice, but the original formulation is sometimes a bit unstable if applied on real data. Therefore there exists a number of variants to LLE in the literature that aims to make it more robust.
+    \item
+        We will now deviate from the original formulation, and modify the constraint in step 2 to \(\sum_{j in N(x_i)} w_{ij}^2 =1\), to obtain a closed solution.
+\end{enumerate}
+
+\bigbreak
+
+\textit{Modified step 2} (weight computation): Note tha the objective function is \underline{invariant} to translation: 
+\begin{align*}
+    \sum_{i=1}^N \norm{x_i - \sum_j w_{ij} x_j}_2^2 &= \sum_{i=1}^N \norm{(x_i - \vec{t}) - \sum_j w_{ij} (x_j - \vec{t})}_2^2\\
+    \Rightarrow \text{set } x_i = \vec{t} & \Rightarrow 
+\sum_{i=1}^N \norm{\sum_j w_{ij} (x_j - x_i)}_2^2\\
+    = \norm{M_i\vec{w_i}}_2^2, \text{ where } 
+    \vec{w_i} &= \left( \begin{array}{c} w_{i1} \\ w_{i2} \\ \dots \\ w_{iN} \end{array} \right)
+   , M_i = \left(\begin{array}{cccc} x_1 - x_i & x_2 - x_i& \dots& x_N - x_i \end{array}\right)\\
+\end{align*}
+Note: differences \(x_j - x_i = 0\) for \(x_j\) outside the neighborhood of \(x_i\)
+\[\Rightarrow minimize (M_i w_i)^T (M_i w_i) + \lambda(1-w_i^T w_i), w.r.t \ w_i\]
+where the latter is the constraint that the squared weights should sum up to one. We see why we have to take the squaered weights critereon: if we would compute the derivative of \(\lambda(1-w_i)\), the constraint would vanish to \(0\). We would have to use linear programming or something.
+
+Compute 
+\[\frac{\partial}{\partial w_i} (w_i^T (M_i^T M_i) w_i + \lambda(1-w_i^T w_i)=  2 \cdot M_i^T M_i w_i - 2 \lambda  \cdot w_i = 0\]
+\[\Rightarrow M_i^T M_i w_i = \lambda w_i\]
+
+This is an eigenvector eigenvalue problem and can solve this easily.
+
 
 \section{Random Forests}
 \textit{What is a random forest?} An ensemble of decision trees.
