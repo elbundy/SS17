@@ -602,7 +602,71 @@ Compute
 
 This is an eigenvector eigenvalue problem and can solve this easily.
 
+\subsection{Laplacian Eigenmaps}
+\textbf{Graph Laplacian:} Matrix representation of a graph. There are many other ways to do this.
 
+\[L = (D - W), \]
+where \(D\) is a diagonal matrix with entries \[d_{ij} = \begin{cases} \sum_{k=1}^N w_{ik} & if \ i=j \\ 0 & if \ i \neq j \end{cases}\] and \(W\) is the adjacency matrix \[w_{ij} = \begin{cases} \text{weight between nodes i and j} & if \ i\neq j \\ 0 & if \ i = j\end{cases}\]
+
+We exclude self-loops here. D is there for normalization. This results in a matrix, which row sum equals \(0\) (\(\sum_{k=1}^N l_{ik} = 0\)).
+
+The graph Laplacian is a popular tool to operate on graphs with methods from linear algebra (\(\rightarrow\) this is a topic in "spectral graph theory").
+
+\bigbreak
+
+\textbf{Idea:}
+\begin{enumerate}
+    \item
+        Build an adjacency graph on the set of feature points \(S=\{x_1, \dots, x_n\}\) 
+    \item
+        Choose weights \(w_{ij}\) for the edges of the graph
+    \item
+        Perform eigendecomposition of the graph Laplacian
+    \item
+        Obtain low-dimensional embedding
+\end{enumerate}
+Choose the weights as affinities, meaning that closer point pairs have higher weights \(\rightarrow\) points that are closely together in high-dimensional space shall remain close in the lower-dimensional embedding.
+
+One common choice for the weights is the so-called heat kernel \(w_{ij} = e^{-\norm{x_i - x_j}_2^2}\), or just binary affinity 
+\(w_{ij} = \begin{cases} 1 & if \ \norm{x-x_j}_2^2 \leq t \\0 & otherwise \end{cases}\).
+
+\bigbreak
+
+\textbf{Ojective function:}
+\[minimize \sum_{i=1}^{N}\sum_{j=1}^{N}\norm{x_i'- x_j'}^2 w_{ij}\]
+where \(x'\in \mathbb{R}^{d'}, d' \ll d\).
+
+Contraint for optimization: \(x'^T D x' = 1\) (squared distances should add up to 1).
+
+Relationship of the objective function to the graph Laplacian:
+\begin{align*}
+    \sum_{i,j} \norm{x_i' - x_j'}_2^2 w_{ij} &= \sum_{i,j} (x_i'^T x_i' + x_j'^T x_j' - 2 x_i'^T x_j') w_{ij} = (2\cdot \sum_{i,j=1}^N(x_i'^T x_i') \cdot w_{ij}) - (2 \cdot \sum_{i,j} x_i'^T x_j' w_{ij})\\
+    &= (2 \cdot \sum_{i=1}^N x_i'^T x_i' \cdot (\sum_{j=1}^N w_{ij}))- (2 \cdot \sum_{i,j} x_i'^T x_j' w_{ij})\\
+    &= 2 x'^T D x' - x'^TWx' = 2 \cdot x'^T (D-W) x'
+\end{align*}
+
+\[\text{minimize } x'^T L x' \text{ subject to } x'^T D x' = 1:\]
+\begin{align*}
+    &\frac{\partial}{\partial x'} (x'^T L x + \lambda (1-x'^T D x'))\\
+    &= 2 2 L x' - \lambda D x' = 0\\
+    &= 2 2 L x' - \lambda D x' = \vec{0}\\
+    Lx' &= \lambda D x'\\
+    \Rightarrow D^{-1} L x' &= \lambda x'
+\end{align*}
+
+On 4.) The lower-dimensional embedding is obtained by selecting a ordered subset of eigenvectors from that decomposition.
+\begin{itemize}
+    \item
+        Sort eigenvectors by the magnitude of their associated eigenvalues 
+    \item
+        Discard the eigenvalue/eigenvector pair for the lowest eigenvalues (the 0 eigenvalue) (number of values depends on connected components in graph)
+    \item
+        The \(d'\) next smallest eigenvalue/eigenvector pairs (\(e_1, e_2, \dots\)) form the lower -dimensionanl embedding: \(i\)th row of \((e_1, e_2, ... e_d)\) represents the lower dimensioanl embedding of \(x_i^T\).
+\end{itemize}
+
+\textit{Addendum} to our Section on clustering: "Spectral clustering" is essentially executing Laplacian Eigenmaps + \(k\)-Means on the lower dimensional space.
+
+How to choose a appropriate \(d'\)? The distribution of the eigenvalues gives an indication about the "intrinsic" dimensionality of the data. If there is a certain gap between eigenvalue, this is a good indication. We don't have this available when using LLE.
 \section{Random Forests}
 \textit{What is a random forest?} An ensemble of decision trees.
 
@@ -726,13 +790,13 @@ The decision criterion for the splitting function works analogously to the class
 \[H(S_j) = -\frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \int_y p(y|x) \cdot log(y|x)dy\]
 where \(p(y|x)\) can, e.g. be chosen as a Gaussian distribution \(p(y|x) = \mathcal{N}(y; \overline{y}(x), \sigma_y^2(x))\), where \(\overline{y}(x)\) is a linear function and \(\sigma_y(x)\) is the conditional variance computed from a linear fit.
 
-%Probabilistic linear fit:
-%\begin{figure}[H]
-%	\centering
-%    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
-%	\caption{Probabilistic linear fit}
-%	\label{fig:rf_regression}
-%\end{figure}
+Probabilistic linear fit:
+\begin{figure}[H]
+	\centering
+    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
+    \caption{Probabilistic linear fit}
+	\label{fig:rf_regression}
+\end{figure}
 
 Combining the expression for \(p(y|x)\) into \(H(S_j)\) yields
 \[H(S_j) = \frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \frac{1}{2} \cdot log((2 \pi e)^2 \sigma_y^2(\vec{x}))\]
@@ -760,6 +824,57 @@ Plugging \(H(S_j)\) back into \(I(S_j, \vartheta)\) yields
 In each leaf, fit a multivariate Gaussian distribution to the data in that leaf using, e.g. MLE.
 
 Note that the fitted densities have discontinuities at the splitting boundaries (this is the same type of discontinuity that we observed for regression forests or classification forests). However, remember that the result of a random forest is averaged over all individual trees. Because of randomization, each tree splits at a slightly different location, and thus the discontinuities are "averaged out" in the forest.
+
+\section{Random Forests (continued)}
+An ensemble of trees that partition the feature space.
+
+Each tree is trained randomly. The amount of randomness is one design decision that we have to make. 
+
+We greedily optimize the information gain at each level. At each internal node, we seek a splitting function for the incoming features that achieves the highest information gain from a set of alternative splitting functions.
+
+\bigbreak
+
+Density estima1tion: From a set of discrete samples \(X\), predicte the pdf \(p(x\).
+
+Parzen window estimator: \(p(x_0) = \frac{k}{N \cdot V}\)
+
+\subsection{Manifold Learning with Random Forests: Manifold Forest}
+\textit{Idea:} Learn a partitioning of the feature space by training \underline{density forest.}\footnote{Note that we don't explicitly use the density} These partitions define a local neighborhood of the samples, which can be used to compute \underline{affinities}, and then to apply \underline{Laplacian Eigenmaps} on them.
+
+Affinity intuition: Decreases with increasing distance.
+
+\bigbreak
+
+\textbf{Task} Define affinities on a readily trained density forest.
+
+Lets \(w_{ij} = e^{-Q(x_i, x_j)}\) denote the affinity between samples \(x_i,x_j\), where \(Q(x_i, x_j)\) denotes a distance function.
+
+The "speciaility" of a Manifold Forest (in contrast, e.g. to standard Laplacian Eigenmaps) is that these distances are defined w.r.t. the leafs of the trees (i.e. the partitions).
+
+Example choices of \(Q\): Let \(d_{ij} = x_i - x_j\), then
+\[\text{Mahalanobis: } Q(x_i, x_j) = \begin{cases} d_{ij}^T(\Lambda_{l(x_i)})^{-1} d_{ij} & \text{if in the same leaf } l(x_i) \\ \infty & otherwise \end{cases}\]
+
+\[\text{Gaussian:} ...\]
+
+\[\text{Binary: } Q(x_i, x_j) = \begin{cases} 0 & \text{if in the same leaf} \\ \infty & otherwise \end{cases}\]
+
+Within a single tree, only the samples with the same leaf have a non-zero affinity. Thus, a single tree produces a number of disconnected neighborhoods.
+However if the affinities are averaged over the whole forest, all points become connected.
+
+\(\Rightarrow\) We have a full adjacency matrix \(A = \frac{1}{T} \sum_{t=1}^T w_ij^t\), where \(T\) denotes the total number of trees.
+
+\(\Rightarrow\) Compute LE on \(A\).
+
+Note that the graph Laplacian in Ciminisi/Shotton  are differently normalized, but it is the same algorithm:
+\[L = I - \Gamma^{-\frac{1}{2}} A \Gamma^{-\frac{1}{2}}\]
+where \(\Gamma = D = \sum A_{ij}\) denotes the sum of the weights for sample \(x_i\).
+
+\(\Rightarrow\): analogous to LE (Eigenvalue decomposition, arrange \(d'\) eigenvectors that are associated with the lowest eigenvalues in a matrix.
+
+\[E = (e_1, e_2, \dots, e_{d'})\]
+
+The projection of \(x_i\) onto a \(d'\) dimensional space just corresponds to the \(i\)-th row of \(E\).
+
 
 
 \section{Hidden Markov Models and Markov Random Fields}
@@ -925,29 +1040,576 @@ A solution to the maximum flow problem is a solution to the minimum cut problem:
 
 \section{Lawrence R. Rabiner, Fellow: A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition}
 \subsection{Discrete Markov Processes}
-\begin{itemize}
-    \item
-        set of \(N\) discrete states \(S_1, S_2, \dots, S_N\)
-    \item
-        set of state transition probabilities \(a_{ij} = P(q_t = S_j | q_{t-1}=S_i)\)
-%    \item
-%        First order Markov chain: \(P(q_t = S_j|q_{t-1} = S_i, q_{t-2} = S_k, \dots) = P(q_t = S_j | q_{t-1}=S_i)\).
-    \item
-        properties: \(a_{ij} \geq = 0\) and \(\sum_{j=1}^N a_{ij} = 1\)
-    \item
-        the states itself are observable
-    \item
-        Calculating the probability of observations sequence given a model:
-        \begin{align*}
-            P(O|Model) &= P(S_3, S_3, S_1, S_1, S_3, S_2, S_3|Model)\\
-            &= P(S_3) \cdot P(S_3|S_3) \dots P(S_3|S_2)\\
-            &= \pi_3 \cdot a_{33} \dots a_{23}\\
-            &= \dots
-        \end{align*}
-        where \(\pi_i = P(q_1 = S_i)\) is the initial state probability
-\end{itemize}
+Consider a system being in one of a set of \(N\) states \(S_1, \dots, S_N\). We denote the actual state at time \(t\) as \(q_t\). State changes accure according to a set of probabilities associated with each state. In the case of first order Markov chains, this probabilistic description depends only on the predecessor state:
+\[P(q_t = S_j | q_{t-1} = S_i, q_{t-2} = S_k, \dots) = P(q_t = S_j | q_{t-1} = S_i)\]
+It is assumed that the transition probabilities are independent of time, leading to a set of state transition probabilities \(a_{ij} = P(q_t = S_j | q_{t-1} = S_i)\) with properties \(a_{ij} \geq 0\) and \(\sum_{j=1}^N a_{ij} = 1\).
+
+Additionally the process starts in a specific state \(i\) with probability \(\pi_i = P(q_1 = S_i)\).
 
 \subsection{Extension to Hidden Markov Models}
+In a Markov Process each state corresponds to an observable (physical) event. This model is too restrictive to be appicable to many problems of interest. We extend the concept of Markov models to include the case where the observation a probabilistic function of the state - i.e. the resulting model (which is called a hidden Markov model) is a doubly embedded stochastic process with an underlying stochastic process that is not observable, but can be observed through another set of stochastic processes that produce the sequence of observations. 
+
+\subsection{Elements of an HMM}
+\begin{enumerate}
+    \item
+        \(N\), the number of states in the model. We denote the states as \(S = \{S_1, \dots, S_N\}\)
+    \item
+        \(M\), the number of distinct observation symbols per state. We denote the individual symbols as \(V = \{v_1, \dots, v_M\}\)
+    \item
+        The state transition probability distribution \(A = \{a_{ij}\}\) where
+        \[a_{ij} = P(q_{t+1} = S_j | q_t = S_i)\] 
+    \item
+        The observation symbol probability distribution in state \(j, B =\{b_j(k)\}\), where
+        \[b_j(k) = P(v_k \ at \ t | q_t = Sj)\]
+    \item
+        The initial state distribution \(\pi = \{\pi_i\}\), where
+        \[\pi_i = P(q_1 = S_i)\]
+\end{enumerate}
+Given appropriate values of \(N, M, A, B, \ and \ \pi\) the HMM can be used as a generator to generate an observation sequence 
+\[O = O_1, O_2, \dots, O_T\]
+
+For convenience, we use the compact notation
+\[\lambda = (A, B, \pi)\]
+to indicate the complete parameter set of the model.
+
+\subsection{The Three Basic Problems of HMMs}
+\begin{enumerate}
+    \item
+        Given the observation sequence \(O = O_1, O_2, \dots, O_T\), and a model \(\lambda = (A, B, \pi)\), how do we efficiently compute \(P(O|\lambda)\), the \textbf{probability of the observation sequence}, given the model?
+    \item
+        Given the observation sequence \(O=O_1, O_2, \dots, O_T\), and the model \(\lambda\), how do we choose a corresponding state sequence \(Q = q_1, q_2, \dots, q_t\) which is optimal in some meaningful sense (i.e., \textbf{best "explains" the observations})?
+    \item
+        How do we adjust model parameters \(\lambda = (A, B, \pi)\) to \textbf{maximize} \(P(O|\lambda)\)?
+\end{enumerate}
+
+\bigbreak
+
+\textbf{Notes:}
+\begin{enumerate}
+    \item
+        Evaluation problem, but also: We can view the problem as one of scoring, how well a given model matches a given observation sequence (useful for comparing models).
+    \item
+        Attempt to uncover the hidden part, i.e. to find "correct" state sequence. Note: there never really is a "correct" state sequence to be found.
+    \item
+        Important for training!
+\end{enumerate}
+
+\textbf{Examples:} Isolated word recognizer
+
+We design a sperate \(N\)-state HMM for each word in its vocabulary \(W\).
+We represent each word as a time sequence of coded spectral vectors (\(M\) many).
+Thus for each word, we have a training sequence of a number of repetitions of sequences of spectral vectors.
+
+\begin{enumerate}
+    \item
+        Problem 3: estimate optimal model parameters for each word model
+    \item
+        Problem 2: segement each of the word training sequences into states, try to understand the physical meaning of the model states. Make refinements (more states, different codebook size, etc.) so as to improve the capability of modeling the spoken work sequence.
+    \item
+        Problem 1: Recognize an unknown word by comparing the scores of the individual models
+\end{enumerate}
+
+\subsection{Solution for Problem 1}
+We wish to calculate the probability of the observation sequence \(O = O_1, O_2, \dots, O_T\) given the model \(\lambda, i.e., P(O|\lambda)\).
+
+Straight forward way: Enumerate every possible state sequence of length \(T\).
+
+The probability of the observation sequence \(O\) for the state sequence \(Q = q_1, \dots, q_T\) is
+\begin{align*}
+    P(O|Q, \lambda) &= \prod_{i=1}^T P(O_t | q_t, \lambda)\\
+    &= b_{q_1}(O_1) \cdot b_{q_2}(O_2) \dots  b_{q_T}(O_T)
+\end{align*}
+given the assumed statistical independence of observations.
+
+The probability of such a state sequence \(Q\) can be written as
+\[P(Q|\lambda) = \pi_{q_1} \cdot a_{q_1q_2} \dots a_{q_{T-1} q_T}\]
+
+The joint probability of \(O, Q\) given \(\lambda\) is given by
+\[P(O, Q | \lambda) = P(O|Q, \lambda) P(Q| \lambda)\]
+
+The probability of \(O\) is obtained by summing this joint pdf over all possible state sequences \(q\) giving
+\begin{align*}
+    P(O | \lambda) &= \sum_{all \ Q} P(O|Q, \lambda) P(Q|\lambda)\\
+    &= \sum_{q_1, q_2, \dots, q_T} \pi_{q_1} b_{q_1}(O_1) \dots a_{q_{T-1}q_T} b_{q_Y}(O_T)
+\end{align*}
+
+This calculation of \(P(O|\lambda\) requires about \(2 \cdot T \cdot N^T\) calcuations \(\Rightarrow\) BAD!
+
+\subsubsection{Forward-Backward Algorithm}
+We define the forward variable as \(\alpha_t(i) = P(O_1, O_2, \dots, O_t, q_t= S_i|\lambda)\), i.e. the probability of the partial observation sequence and the state \(S_i\) at \(t\).
+
+\begin{enumerate}
+    \item
+        Initialization: 
+        \(\alpha_1(i) = \pi_i b_i(O_1)\)
+    \item
+        Induction:
+        \(\alpha_{t+1}(j) = (\sum_{i=1}^N \alpha_t(i) \cdot a_{ij}) b_j(O_{t+1})\)
+    \item
+        Termination:
+        \(P(O|\lambda) = \sum_{i=1}^N \alpha_T(i)\)
+\end{enumerate}
+The computation of \(\alpha_t(i)\) requires \(N^2 T\) calculations.
+
+\bigbreak
+
+In a similar manner, we can consider backward variable \(\beta_t(i) = P(O_{t+1}, O_{t+2}, \dots, O_T | q_t = S_i, \lambda)\)
+i.e. the probability of the partial observation sequence from \(t+1\) to \(T\), given state \(S_i\) at time \(t\).
+\begin{itemize}
+    \item
+        Initialization: \(\beta_T (i) = 1\) (choosen arbitrarily)
+    \item
+        Induction: \(\beta_t(i) = \sum_{j=1}^N a_{ij} b_j(O_{t+1}) \beta_{t+1}(j)\)
+\end{itemize}
+Again, \(\beta_t(i)\) requires \(N^2 T\) calculations.
+
+
+\subsection{Solution for Problem 2}
+One possible optimality critereon: choose the states \(q_t\) which are \textit{individually} most likely. We define
+\begin{align*}
+    \gamma_t(i) &= P(q_t=S_i|O, \lambda)\\
+    &= \frac{\alpha_t(i)\beta_t(i)}{P(O|\lambda)} = \frac{\alpha_t(i)\beta_t(i)}{\sum_{i=1}^N \alpha_t(i) \beta_t(i)} 
+\end{align*}
+i.e., the probability of being in state \(S_i\) at time \(t\). The denominater makes \(\gamma_t(i)\) a probability measure by normalizes \(\sum_{i=1}^N \gamma_t(i) = 1\).
+
+We can solve for the individually most likely state \(q_t\) via
+\[q_t = \argmax_{1 \leq i \leq N} \gamma_t(i)\]
+\textit{Problem:} Although this maximized the expected number of correct states (by choosing the most likely state for each \(t\)), it could be the case that such a state sequence isn't even possible (i.e. \(a_{ij} = 0\)).
+
+Another optimaility critereon: find single best state sequence (path), i.e. maximize \(P(Q|O, \lambda)\), which is equivalent to maximizing \(P(Q, O|\lambda)\) \(\rightarrow\) \textit{Viterbi-Algorithm}
+
+We define the quantity
+\[\delta_t (i) = \max_{q1, q2, \dots q_{t-1}} P(q_1, \dots, q_t=i, O_1, \dots, O_t|\lambda)\]
+i.e., \(\delta_t(i)\) is the best score (highest probability) along a single path, at time \(t\), which accounts for the first \(t\) observations and ends in state \(S_i\). By induction we have
+\[\delta_{t+1}(j) = \max_i (\delta_t(i) \alpha_{ij}) \cdot b_j(O_{t+1})\]
+
+To retrieve the state sequence, we need to keep track of the argument which maximizes this expression. We do this via the array \(\psi_t(j)\)
+
+\begin{enumerate}
+    \item
+        Initialization:
+        \begin{align*}
+            \delta_1(i) &= \pi_i b_i(O_1)\\
+            \psi_1(i) &= 0
+        \end{align*}
+    \item
+        Recursion:
+        \begin{align*}
+            \delta_t(j) &= \max_i (\delta_{t-1}(i) \alpha_{ij}) \cdot b_j(O_{t+1})\\
+            \psi_t(j) &= \argmax_i (\delta_{t-1}(i) \alpha_{ij})
+        \end{align*}
+    \item
+        Termination:
+        \begin{align*}
+            P^* &= \max_i \delta_T(i)\\
+            q_T^* &= \argmax_i \delta_T(i)
+        \end{align*}
+    \item
+        Path (state sequence) backtracking:
+        \[q_t^* = \psi_{t+1}(q_{t+1}^*), t = T-1, \dots, 1\]
+\end{enumerate}
+
+\subsection{Solution for Problem 3}
+There is no known way to analytically solve this problem: Baum-Welch Algorithm, iterative approach to choose \(\lambda = (A, B, \pi)\) such that \(P(O|\lambda\) is locally maximalize using an iterative procedure.
+
+We define \(\xi_{i,j}\) the probability of being in state \(S_i\) at time \(t\), and state \(S_j\) at time \(t+1\), given the model an the observations, i.e.
+\begin{align*}
+    \xi_{t}(i,j) &= P(q_t = S_i, q_{t+1} = S_j|O, \lambda)\\
+    &= \frac{\alpha_t(i) \cdot a_{ij} \cdot b_j(O_{t+1}) \beta_{t+1}(j)}{P(O|\lambda)}\\
+    &= \frac{\alpha_t(i) \cdot a_{ij} \cdot b_j(O_{t+1}) \beta_{t+1}(j)}
+    {\sum_{i=1}^N \sum_{j=1}^N \alpha_t(i) a_{ij} b_j(O_{t+1}) \beta_{t+1}(j)}\\
+\end{align*}
+
+We have previously defined \(\gamma_t(i)\) as the probability of being in state \(S_i\) at time \(t\), given the observation sequence and the model; hence we can relate \(\gamma_t(i)\) to \(\xi_t(i,j)\) by summing over \(j\), giving
+\[\gamma_t(i) = \sum_{j=1}^N \xi_t(i,j)\]
+
+If we sum \(\gamma_t(i)\) over the time index \(t\), we get a quantity which can be interpreted as the expected (over time) number of times that \(S_i\) is visited, or equivalently, the expected number of transitions made from state \(S_i\) (if we exluce \(T\)). Similarily, summation of \(\xi_t(i,j)\) can be interpreted as the expected number of transitions from state \(S_i\) to \(S_j\). That is:
+\[\sum_{t=1}^{T-1} \gamma_t(i) = \text{ expected number of transitions from } S_i\]
+\[\sum_{t=1}^{T-1} \xi_t(i, j) = \text{ expected number of transitions from } S_i \text{ to } S_j\]
+
+Given these formulas, we can give a method for reestimation of the parameters of an HMM. A set of reasonable reestimation fomulas for \(\pi, A, B\) are
+\begin{align*}
+    \bar{\pi_i} &= \text{ expected frequency in state } S_i \text{ at time } t=1, \gamma_1(i)\\ 
+    \bar{a_{ij}} &= \frac{\text{expected number of transitions from state } S_i \text{ to state } S_j}{\text{expected number of transitions from state } s_i}\\
+    &= \frac{\sum_{t=1}^{T-1} \xi_t(i, j)}{\sum_{t=1}^{T-1} \gamma_t(i)}\\
+    \\
+    \bar{b_j(k)} &= \frac{\text{expected number of time in state } j \text{ and observing symbol } v_k}{\text{expected number of times in state } j}\\
+    &= \frac{\sum_{t=1}^T\gamma_t(j) 1(v_t = k)}{\sum_{t=1}^T\gamma_t(j)}
+\end{align*}
+
+If we define the current model as \(\lambda = (A,B, \pi)\) and use that to compute these new esimates, then it has been proven that the new \(\bar{\lambda}\) is at least as likely as the old model in the sense that \(P(O|\hat{\lambda}) > P(O|\lambda)\). If we use this procedure iteratively we obtain a maximum likelihood estimate of the HMM.
+\newpage
+
+\section{Criminisi, Shotton, Konukoglu: "Decision Forests: A Unified Framework for Classification, Regression, Density Estimation, Manyfold Learning and Semi-Supervised Learning", Foundations and Trends in Computer Graphics and Visio}
+
+\rule{\textwidth}{1pt}
+\textbf{Random Decision Forests}
+\subsection{Background and notation}
+\subsubsection{Decision tree basics}
+A tree is a collection of nodes (internal/split and terminal nodes) and edges organized in a hirarchical structure.
+
+A \textit{decision} tree is a tree used for making decisions. Each internal node corresponds to a \textit{test}. The leaf contains the answer. A decision tree can be interpreted as a technique for splitting complex problems into a hirarchy of simpler ones.
+
+\subsubsection{Training and testing decision trees}
+\textbf{Testing}:
+
+Bli Bla Blub
+
+\bigbreak
+
+\textbf{Training}:
+
+When discussing tree training it is convenient to think of subsets of training points associated with different tree branches, e.g. \(S_1\) denotes the subset of training points reaching node \(1\) (numbering in breadth-first order starting from 0 for the root) and \(S_1^L, S_1^R\) denote the subsets going to the left and to the right children of node \(1\) and \(S_j^L = S_{2j+1}\).
+
+\subsubsection{Entropy and information gain}
+Shannon entropy: \(H(S) = - \sum_{c \in C} p(c) log (p(c))\), where \(c\) is a class.
+
+Information gain: \(H(S) = H(S) - \sum_{i \in \{1,2\}} \frac{\abs{S^i}}{\abs{S}} H(S^i)\)
+
+Differential entropy of a \(d\)-variate Gaussian density: \(H(S) = \frac{1}{2} log((2 \pi e)^d\abs{\Lambda(S)})\)
+
+\textit{In case of unlabled data:}
+\begin{itemize}
+    \item
+        Fit Gaussian to data
+    \item
+        Split in a way where the entropy of the Gaussians, fitted to the splitted sets is the lowest (information gain is highest)
+\end{itemize}
+
+\subsection{The decision forest model}
+A random decision forest is an ensemble of randomly trained decision trees.
+
+Components:
+\begin{itemize}
+    \item
+        Family of split function ("weak learners")
+    \item
+        Type of leaf predictors
+    \item
+        Randomness model
+\end{itemize}
+
+\subsubsection{The weak learner model}
+Each split node \(j\) is associated with a binary split function \(h(v, \theta_j) \in \{0,1\}\). The weak learner model is characterized by its parameters \(\theta = (\phi, \psi, \tau)\) where
+\begin{itemize}
+    \item
+        \(\psi\) defines the goemetric primitive used to separate the data (e.g. an axis-aligned hyperplane, an oblique hyperplane, a general surface, etc.)
+    \item
+        \(\tau\) captures thresholds for the inequalities used in the binary test
+    \item
+        \(\phi\) is a filter function, which selects some features of choice out of the entire vector \(v\)
+\end{itemize}
+
+\bigbreak
+
+Example:
+
+\textbf{Linear data separation}: \(h(v, \theta_j) = [\tau_1 > \phi(v) \cdot \psi > \tau_2]\), where \([.]\) is the indicator function.
+
+\subsubsection{The training objective function}
+Objective function:
+\[\theta_j^* = \argmax_{\theta_j} I_j\]
+with
+\[I_j = I(S_j, S_j^L, S_j^R, \theta_j)\]
+Can be found by extensive search.
+
+\subsubsection{The randomness model}
+Drawing the component trees of the forest leads to de-correlation between the individual tree predictions and, in turn, to improve generalization.
+
+Randomness is injected into the trees during the training phase:
+\begin{itemize}
+    \item
+        random training data set sampling
+    \item
+        randomized node optimization
+\end{itemize}
+
+\textbf{Randomized node optimization}
+    
+If \(\mathcal{T}\) is the entire set of all possible parameters \(\mathcal{T}\) then when training the \(j\)th jode we only make available a small subset \(\mathcal{T}_j \subset \mathcal{T}\) of such values. Thus under the randomness model training a tree is achieved by optimizing each split node \(j\) by
+\[\theta_j^* = \argmax_{\theta_j \in \mathcal{T}} I_j\]. The amount of randomness is controlled by the ratio \(\abs{\mathcal{T}_j}/\abs{\mathcal{T}}\).
+
+We define \(p = \abs{\mathcal{T}_j}\).
+
+\subsubsection{The leaf prediction model}
+In the case of classification, each leaf may store the empirical distribution over the classes associated to the subset of training data that has reached that leaf. The probabilistic leaf predictor model for the \(t\)th tree is then \(p_t(c|v)\). In more conventional decision trees the leaf output may be \(c^* = \argmax_c p_t(c|v)\).
+
+\subsubsection{The ensemble model}
+In a forest with \(T\) trees we have \(t \in \{t, \dots, T\}\). All trees are trained independently. During testing, each test point \(v\) is simultaneously pushed through all trees. Combining tree predictions:
+\[p(c|v) = \frac{1}{T} \sum_{t=1}^T p_t (c|v)\]
+or (even though trees are not statistically independent)
+\[p(c|v) = \frac{1}{Z} \prod_{t=1}^T p_t (c|v)\]
+with the partition function \(Z\) ensuring probabilistic normalization.
+
+\subsubsection{Stopping criteria}
+It is common to stop creating new branches when a maximum number of level \(D\) has been reached. Alternatively one can impose a minimum informatioin gain or a node contains less than a defined number of training points. Avoiding growing full trees has shown to help generalization.
+
+\subsubsection{Summary of key model parameters}
+Parameters that influence forest behavior:
+\begin{enumerate}
+    \item
+        Forest size \(T\)
+    \item
+        Maximum allowed tree depth \(D\)
+    \item
+        Amount of randomness (controlled by \(p\)) and its type
+    \item
+        The choice of weak learner model
+    \item
+        The training objective function
+    \item
+        The choice of features
+\end{enumerate}
+
+\rule{\textwidth}{1pt}
+\textbf{Classification Forests}
+Classification forests enjoy a number of useful properties:
+\begin{itemize}
+    \item
+        they naturally handle problems with more than two classes 
+    \item
+        they provide a probabilistic output
+    \item
+        the generalize well
+    \item
+        they are efficient
+\end{itemize}
+
+\subsection{Specializing the decision forest model for classification}
+\textbf{Task:}
+\textit{Given a labelled traning set learn a general mapping which associates previously unseen data with their corret classes}
+
+More formally, during testing we are given an input test data \(v\) and we wish to infer a class label \(c\) such that \(c \in C\), with \(C = \{c_k\}\). More generally we wish to compute the whole distribution \(p(c|v)\). Training happens by optimizing an energy over a training set \(S_0\) and associated ground truth labels.
+
+\bigbreak
+
+\textbf{The training objective function}
+
+Forest training happens by optimizing the parameters of the weak learner at each split node \(j\) via:
+\[\theta_j^* = \argmax_{\theta_j \in \mathcal{T}_j} I_j\]
+
+For classification the objective function \(I_j\) takes the form of a classical information gain defined for discrete distribtutions:
+\[I_j = H(S_j) - \sum_{i \in \{L, R\}} \frac{\abs{S_j^i}}{\abs{S_j}} H(S_j^i)\]
+
+The entropy for a generic set \(S\) is defined as
+\[H(s) = -sum_{c \in C} p(c) log(p(c))\]
+where \(p(c)\) is calculated as normalized empirical histogram of labels corresponding to the training points in \(S\). This leads to increasing confidence of prediction when going from root toward the leaves.
+
+\textbf{Randomness}
+
+We define \(p = \abs{\mathcal{T}_j}\) indication the amount of randomness. We randomly sample \(p\) parameter values out of possibly billions or infinite.
+
+\textbf{The leaf and ensemble prediction models}
+
+Classification forests produce probabilistic output:
+\[p(c|v) = \frac{1}{N} \sum_1^T p_t(c|v)\]
+
+\subsection{Effects of model parameters}
+Here, effects of the forest model parameters on classiciation accuracy and generalization are studied.
+\subsubsection{The effect of forest size on generalization}
+\begin{center}
+    \includegraphics[scale=1]{img/forestsize.png}
+\end{center}
+
+\subsubsection{Multiple classes and training noise}
+Major advantage of decision forests: the same classification model can handle both binary and multi-class problems.
+
+\begin{center}
+    \includegraphics[scale=1]{img/forestmulticlass}
+\end{center}
+
+\subsubsection{Sloppy lables and the effect ot the tree depth}
+
+\begin{center}
+    \includegraphics[scale=0.6]{img/forestnoise}
+\end{center}
+
+\subsubsection{The effect of the weak learner}
+
+\begin{center}
+    \includegraphics[scale=0.9]{img/forestlearner}
+\end{center}
+
+We should consider that axis aligned tests are extremely efficient to compute. So the choice of the weak learner has to be based on considerations of both accuracy and efficiency and depends on the specific application at hand.
+
+\subsubsection{The effect of randomness}
+
+\begin{center}
+    \includegraphics[scale=1]{img/forestrandom}
+\end{center}
+
+Larger randomness helps reduce a little the blocky artifacts of the axis-aligned weak-learner as it produces more rounded decision boundaries. Also more randomness reduces the overall confidence.
+
+\subsection{Maximum-margin properties}
+Imagine we have linearly separable 2-class training data set (\(d=2\)), an axis aligned weak learner model and \(D=2\). As usual randomness is injected via randomized node optimization.
+
+When training the root node of the frist tree, if we specify \(p\) large enough, the selected separating line tends to be placed somewhere within the gap. Any position within the gap is associated with exactly the same, maximum information gain. Thus, a collection of randomly trained trees produces a set of separating lines randomly placed within the gap.
+
+If the candidate separating lines are sampled from a uniform distribution (as it is usually the case) then this would yield forest classification posteriors that vary within the gap as a linear ramp. If we are interested in a hard separation then the optimal separating surface is such that the posteriors for the two classes are identical.
+
+\begin{center}
+    \includegraphics[scale=0.7]{img/forestmaxmargin}
+\end{center}
+
+\rule{\textwidth}{1pt}
+\textbf{Regression Forests}
+
+\subsection{Specializing the decision forest model for regression}
+\textbf{Task:}
+\textit{Given a labelled training set learn a general mapping which associates previously unseen independent test data with their correct continuous prediction.}
+
+Formally, given a multi-variate input \(v\) we wish to associate a continuous multi-variate label \(y \in Y \subseteq \mathbb{R}^n\). More generally, we wish to estimate the probability density function \(p(y|v)\).
+
+\textbf{Why regression forests?}
+
+A regression tree splits a complex nonlinear regression problem into a set of smaller problems which can be more easily handled by simpler models (e.g. linear ones).
+
+\textbf{The prediction model}
+
+In classification we have used the pre-stored empirical class posterior as model. In regression forests we have a few alternatives (e.g. constant, linear, polynomial).
+
+Though in this paper we use a probability density function over the continuous variable \(y\). So, given the \(t\)th tree in a forest and an input \(v\), the associated output takes the form \(p_t(y|v)\).
+
+\textbf{The ensemble model}
+
+\[p(y|v) = \frac{1}{T} \sum_1^T p_t(y|v)\]
+
+\textbf{Randomness model}
+
+See classification forests.
+
+\textbf{The training objective function}
+
+As usual, the optimal parameter set is given by
+\[\theta_j^* = \argmax_{\theta_j \in \mathcal{T}_j} I_j\]
+where the main difference between classification and regression forests are in the objective function \(I_j\).
+
+\textbf{Idea:}
+\begin{itemize}
+    \item
+        Apply probabilistic linear fit to both subsets, yielding a best fitting line, and an additional probability density function \(p(y|x)\) with \(\sigma_y(x)\)
+    \item
+        Take the split that minimizes the variance \(\sigma_y(x)\) forall \(x\) in the subsets compared to before the split
+\end{itemize}
+
+
+
+\rule{\textwidth}{1pt}
+\textbf{From lecture}
+
+The decision criterion for the splitting function works analogously to the classification case. The only difference ist that we need to define the entropy \(H(S_j)\) on continous values:
+\[H(S_j) = -\frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \int_y p(y|x) \cdot log(y|x)dy\]
+where \(p(y|x)\) can, e.g. be chosen as a Gaussian distribution \(p(y|x) = \mathcal{N}(y; \overline{y}(x), \sigma_y^2(x))\), where \(\overline{y}(x)\) is a linear function and \(\sigma_y(x)\) is the conditional variance computed from a linear fit.
+
+Probabilistic linear fit:
+\begin{center}
+    \includegraphics[height=4cm]{img/rf_linearfit.jpg}
+\end{center}
+
+Combining the expression for \(p(y|x)\) into \(H(S_j)\) yields
+\[H(S_j) = \frac{1}{\abs{S_j}} \cdot \sum_{\vec{x} \in S_j} \frac{1}{2} \cdot log((2 \pi e)^2 \sigma_y^2(\vec{x}))\]
+\[\Rightarrow I(S_j, \vartheta) = \sum_{\vec{x} \in S_j} log(\sigma_y(\vec{x})) - \sum_{i \in \{L, R\}} (\sum_{x \in S_j^i} log (\sigma_y(\vec{x}))) \]
+
+\rule{\textwidth}{1pt}
+
+By comparison, the error or fit objective function for single-variate output \(y\) and constant predictors is
+\[\sum_{v \in S_j} (y - \bar{y}_y)^2 - \sum_{i \in \{L, R\}} (\sum_{v \in S_j^i}(y-\bar{y_j} )^2)\]
+
+\textbf{The weak learner model}
+
+See classification forest.
+
+\rule{\textwidth}{1pt}
+
+\textbf{Density forests}
+
+\subsection{Specializing the forest model for denisty estimation}
+\textbf{Task}: \textit{Given a set of unlabelled observations we wish to estimate the probability density function from which such data has been generated}.
+
+The desired output is the entire pdf \(p(v) \geq 0, s.t. \ \int p(v) dv = 1\), for any generic input \(v\).
+
+\textbf{What are density forests?} A density forest is a collection of randomly trained clustering trees. The tree leaves contain simple prediction models such as Gaussians. So, loosely speaking a density forest can be thought of as a generalization of Gaussian miaxture models with two differences:
+\begin{enumerate}
+    \item
+        multiple hard clustered data partitions are created, one by each tree. This is in contrast to the single "soft" clustering generated by the EM algorithm.
+    \item
+        the forest posterior is a combination of tree posteriors. So, each input data point is explained by multiple clusters (one per tree). This is in contrast to the single linear combination of Gaussians in a GMM.
+\end{enumerate}
+
+\textbf{The training objective function}
+
+Given a collection of unlabelled points \(\{v\}\) we train each individual tree in the forest independently. As always:
+\[\theta_j^* = \argmax_{\theta_j \in \mathcal{T}} I_j\]
+with the generic information gain \(I_j\) defined as
+\[I_j = H(S_j) - \sum_{i = L,R} \frac{\abs{S_j^i}}{\abs{S_j}}H(S_j^i)\]
+
+No ground-truth labels \(\Rightarrow\) \textit{unsupervised} entropy. As with a GMM we use the working assumption of multi-variate Gaussian distributions at the nodes. Then, the differential (continous) entropy of an \(d\)-variate Gaussian can be shown to be
+\[H(S) = \frac{1}{2} log((2\pi e)^d \abs{\Lambda(S)})\]
+where \(\Lambda\) is the associated \(d \times d\) convariance matrix. Consequently, the information gain reduces to
+\[I_j = log(\abs{\Lambda(S_j)}) - \sum_{i \in \{L, R\}} \frac{\abs{S_i^i}}{\abs{S_j}} log(\abs{\Lambda(S_j^i)})\]
+
+\textit{Motivation:}
+Determinant of covariance matrix is a function of the volume of the ellispoid corresponding to that cluster. Maximizing the mentioned information gain trens to split the data into a number of compact clusters. The centers of those clusters tend to be placed in areas of high data density, while the separating surfaces are placed along regions of low density.
+
+\textbf{Prediction model}
+Each \(v\) reaches one leave denoted as \(l(v)\). The statistics of all training points arriving at each leaf node are summarized by a single multi-variate Gaussian distribution \(N(v, \mu_{l(v)}, \Lambda_{l(v)})\). Then, the output of the \(t\)th tree is:
+\[p_t(v) = \frac{\pi_{l(v)}}{Z_t} N(v; \mu_{l(v)}, \Lambda_{l(v)})\]
+
+In order to ensure probabilistic normalization we need to incorporate the partition function \[Z_t = \int_v \pi_{l(v)} N(v; \mu_{l(v)}, \Lambda_{l(v)}) dv\]
+(The volume of the whole pdf, weighted by number of samples of training data inside each density region).
+
+\subsection{Effect of model parameters}
+\textbf{Tree depth:} Deeper trees tend to overfit heavily.
+
+\textbf{Forest size:} The addition of further trees tends to produce smoother densities. This is thanks to the randomness of each tree density estimation. Bigger forests are always better (also for classification and regression).
+
+\subsection{Sampling from the generative model}
+\begin{enumerate}
+    \item
+        Draw uniformily a random tree index \(t \in \{1, T\}\) to select a single tree in the forest
+    \item
+        Descend the tree
+        \begin{itemize}
+            \item
+                Starting at the root node, for each split node randomly generate the child index with probability proportional to the number of training points in edge (proportional to edge thickness)
+            \item
+                Repeat step 2 until a leaf is reached
+        \end{itemize}
+    \item
+        At the leaf draw a random sample from the \textit{domain bounded} Gaussian stored at that leaf
+\end{enumerate}
+
+
+\rule{\textwidth}{1pt}
+\textbf{Manifold forest}
+
+Advantage with respect to other techniques:
+\begin{enumerate}
+    \item
+        Computational efficiency
+    \item
+        Automatic selection of discriminative features via information-based energy optimization
+    \item
+        Being part of a more general forest model and, in turn code re-usability
+    \item
+        Automatic estimation of the optimal dimensionality of the target space
+\end{enumerate}
+
+\subsection{Specializing the forest model for manifold learning}
+\textbf{Task}: \textit{Given a set of \(k\) unlabelled observations \(v_1, \dots, v_k\) with \(v_i \in R^d\) we wish to find a smooth mapping \(f: R^d \rightarrow R^{d'}, f(v_i) = v_i'\) such that \(d' \ll d\) and that preserves the observations' relative geodesic distance}.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1062,9 +1724,6 @@ We can rewrite this by defining a function
 \[\delta_n (x) = \frac{1}{V_n} \varphi (\frac{x}{h_n})\]
 and then obtain \(p_n(x)\) as the average
 \[p_n(x) = \frac{1}{n} \sum_{i=1}^N \delta_n(x-x_i)\]
-
-\section{Comaniciu, Meer: "Mean Shift: A Robust Approach Toward Feature Space Analysis"}
-
 
 \end{appendices}
 \end{document}
