@@ -1163,10 +1163,41 @@ The basic idea is first to construct an explanation of the observation unsing pr
 
 \section{Learning Probabilistic Models}
 \subsection{Statistical Learning}
-\textbf{Bayesian Learning} calculates the probability of each hypothesis, given the data, and makes predictions on that basis. That is, the predictions are made by using all the hypotheses, weighted by their probabilities.
+\textbf{Bayesian learning} simply calculates the probability of each hypothesis, given the data, and makes predictions on that basis. Let \(D\) represent the data, with observed value \(d\); then the probability of each hypothesis is obtained by Bayes' rule:
 \[P(h_i | d) = \alpha P(d|h_i) P(h_i)\]
-where, \(d\) is the observed data, and
-\[P(X | d) = \sum_i \]
+where the observations are assumed to be independent and identically distributed (i.i.d), and so
+\[P(d | h_i) = \prod_j P(d_j|h_i)\]
+where \(p(h_i)\) is called the \textbf{hypothesis prior} and \(P(d|h_i)\) the \textbf{likelihood} of the data under each hypothesis.
+
+Now, suppose we want to make a prediction about an unknown quantity \(X\). Then we have
+\[P(X|d) =\sum_iP(X, h_i | d) = \sum_i(P(X | h_i, d) \cdot P(h_i | d) = \sum_i P(X|h_i) P(h_i|d)\]
+where we assume that each hypothesis determies a probability over \(X\).
+
+Because of computational cost it is often infeasible to compute all the posterior probabilities for each hypotesis. A very common approximation is to make predictions based on a single \textit{most probable} hypothesis - that is, an \(h_i\) that maximizes \(P(h_i|d)\). This is often called a \textbf{maximum a posteriori} or MAP hypothesis with the assumption \(P(X|d) \approx P(X|h_{MAP})\).
+
+\[h_{MAP} = \argmax_{h} P(h|d) = \argmax_{h} \frac{p(d|h) p(h)}{p(d)} = \argmax_{h} p(d|h) p(h)\]
+
+Another simplification is provided by assuming \textbf{uniform} prior over the space of hypotheses. In that case, MAP learning reduces to choosing an \(h_i\) that maximized \(P(d|h_i)\). This is called a \textbf{maximum-likelihood} (ML) hypothsis with
+\[h_{ML} = argmax_h p(h|d)\]
+
+\subsection{Learning with Complete Data}
+The general task of learning a probability model, given data that are assumed to be generated from that model, is called \textbf{density estimation}. Here: \textbf{complete} data.
+
+\subsubsection{Maximum-likelihood parameters learning: Discrete models}
+We are given a dataset \(d\) of \(N\) candies. Under the hypothesis \(h_{\theta}\), the likelihood of this particular data set is
+\[P(d|h_{\theta}) = \prod_{j=1}^N P(d_j| h_{\theta})\]
+
+The maximum-likelihood hypothesis is given by the value of \(\theta\) that maximized this expression The same value is obtained by maximizing the \textbf{log-likelihood},
+\[L(d|h_{\theta}) = log P(d | h_{\theta}) = \sum_{j=1}^N log P(d_j | h_{\theta})\]
+We differentiate \(L\) with respect to \(\theta\) and set the resulting expression to zero (\(\frac{\partial L(d|h_{\theta})}{\partial \theta} = 0\))
+
+\subsubsection{Naive Bayes models}
+The different features (attributes) \(x_1, \dots, x_n\) of an observation are assumed to be statistically independent:
+\[P(C_k, x_1, x_2, \dots, x_n) = p(C_k) \prod_{i=1}^n p(x_i | C_k) \]
+and
+\[P(C_k | x_1, x_2, \dots, x_n) = \frac{p(C_k) \prod_{i=1}^n p(x_i | C_k)}{P(x_1, \dots, x_n} = \alpha \ p(C_k) \prod_{i=1}^n p(x_i | C_k) \]
+
+A deterministic prediction can be obtained by choosing the most likely class.
 
 \end{document}
 
