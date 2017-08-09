@@ -453,6 +453,7 @@ Stick breaking process:
 \end{itemize}
 
 \section{Manifold Learning}
+"Finding meaningful low-dimensional structures hidden in their high-dimensional observations"
 \subsection{Curse of Dimensionality}
 "Human intuition breaks down in high dimensional spaces." (Bellman, 1961)
 
@@ -501,6 +502,19 @@ PCA operates on explicitly given feature vectors \(x_i\). What if we only have a
 
 \(\Rightarrow\) This is a closely related problem, PCA on distances is called \textbf{MDS}.
 
+\subsubsection{Reminder PCA}
+Let the data matrix \(X\) be of \(n \times p\) size, where \(n\) is the number of samples and \(p\) the number of variables. Let us assume that is is centered.
+
+The \(p \times p\) covariance matrix \(C\) is given by \(C = X^T X/(n-1)\). It is a symmetric matrix and so can be diagonalized:
+\[C = V L V^T\]
+where \(V\) is a matrix of eigenvectors (each column is an eigenvector) and \(L\) is a diagonal matrix with eigenvalues \(\lambda_i\) in the decreasing order on the diagonal. The eigenvectors are called \textit{principal axes}. The projections of the data on the principal axes are called \textit{principal components}. These can be seen as new, transformed variables. The \(j\)-th principal component is given by the \(j\)th column of \(XV\). The coordinates of the \(i\)th data point is the new principal component space are given by the \(i\)-th row of \(XV\).
+
+If we now perform a SVD of \(X\), we obtain a decomposition 
+\[X = U S V^T\]
+where \(S\) is the diagonal matrix of singular values \(s_i\). The singular values are related to the eigenvalues of the covariance matrix via \(\lambda_i = s_i^2/(n-1)\). 
+
+(The columns of \(U\) are the eigenvectors of \(XX^T\), the columns of \(V\) the eigenvectors of \(X^TX\)).
+
 \subsection{Multidimensional Scaling (MDS)}
 \textit{Task:} Reconstruct a set of points (potentially in a lower dimension) from their differences. MDS computes the "best" (in a least square sense) coordinates up to rotation, translation and mirroring (axis reversal).
 
@@ -532,7 +546,7 @@ Multiply \(D^2\) from left and right with a centering matrix \(C = (I - \frac{1}
     &= X^T X
 \end{align*}
 
-This is a matrix factorization problem. If you you compute \(SVD(X^T X) \Rightarrow U \Sigma V \Rightarrow X = \Sigma^{\frac{1}{2}} V\).
+This is a matrix factorization problem. If we compute the eigenvector-eigenvalue decomposition (we can do this because its an square matrix) of \(X^T X\) we get \(U \Sigma U^T \Rightarrow X = \Sigma^{\frac{1}{2}} U^T\).
 
 MDS is essentially the same thing as PCA, but it operates on distances. We can reduce the dimensionality of our data by:
 \begin{itemize}
@@ -542,14 +556,41 @@ MDS is essentially the same thing as PCA, but it operates on distances. We can r
         Dropping the remaining eigenvalue and eigennvectors inside the multiplication
 \end{itemize}
 
+We can calculate \(\frac{\sum_{i=1}^p \lambda_i}{\sum_{i=1}^{n-1} \lambda_i}\), which expresses the proportioin of variance explained by \(p\) dimensions.
+
 \subsection{ISOMAP algorithm}
 A non-linearity "patch" for MDS. 
 
 Idea: nearby points have their "usual" Euclidean distance. If a pair of points is not within a local neighborhood, the distance between these points is a graph distance (shortest path). We have an all pairs shortest path problem, which can be solved with certain algorithms (Dijstra, \(A^*\), BFS, DFS, ...). Then, run MDS on the resulting distance matrix. 
 
-This procedure is useful if you want to reduce the dimensionality of "swirly" datasets for example.
+ISOMAP operates on geodesic distances (like a distance on earths surface/distances on the manifold).
 
-ISOMAP operates on geodesic distances (like a distance on earths surface). This means that 
+\subsubsection{Additional notes}
+\begin{itemize}
+    \item
+        Manifold learning algorithms are based on the idea that the dimensionality of many data sets is only artificially high. Although the data points may consist of thousands of features, they may be described as a function of only a few underlying parameters. That is, the data points are actually sampled from a low-dimensional manifold that is embedded in a high dimensional space. Manifold learning algorithms attempt to uncover these parameters in order to find a low-dimensional representation of the data.
+    \item
+        Error function: \[E = \norm{\text{inner product distances in graph} - \text{inner product distances in new coordinate system}}_{L_2}\]
+    \item
+        Finding optimal dimensionality: Look at residual variance (or error) (depending on \(d\)) and search for "elbow" at which the curve ceases to decrease significanlty with added dimensions. (PCA/MDS tend to overestimate dimensionality)
+    \item
+        PCA and MDS are guaranteed, given sufficient data, to recover the true structure of linear manifolds
+    \item
+        ISOMAP is guaranteed asymptotically to recover the true dimensionality and geometric structure of a strictly larger class of nonlinear manifolds, which intrinsic geometry is that of a convex region of Euclidean space
+    \item
+        ISOMAP is a polynomial time, noniterative procedure which guarantees global optimality
+    \item
+        Possible problems:
+        \begin{itemize}
+            \item
+                If \(k\) for \(k\)-NN is to large, or noise in the data moves the points slightly off the manifold, ISOMAP is vulnerable to "short-circuiut error", where even single errors can alter the low-dim embedding drastically
+            \item
+                If \(k\) is to small, the neighborhood graph may become too sparse to approximate geodesic paths accuratly
+                
+        \end{itemize}
+\end{itemize}
+
+
 
 \subsection{Locally Linear Embedding}
 \textit{Idea:} Treat the local neighborhood of a point \(x\) as linear. This makes the mapping an overall non-linear mapping consisting of small linear patches.
@@ -593,7 +634,7 @@ Nearer point in the original space will result in higher weights.
    , M_i = \left(\begin{array}{cccc} x_1 - x_i & x_2 - x_i& \dots& x_N - x_i \end{array}\right)\\
 \end{align*}
 Note: differences \(x_j - x_i = 0\) for \(x_j\) outside the neighborhood of \(x_i\)
-\[\Rightarrow minimize (M_i w_i)^T (M_i w_i) + \lambda(1-w_i^T w_i), w.r.t \ w_i\]
+\[\Rightarrow minimize (M_i w_i)^T (M_i w_i) + \lambda(1-w_i^T w_i)\]
 where the latter is the constraint that the squared weights should sum up to one. We see why we have to take the squaered weights critereon: if we would compute the derivative of \(\lambda(1-w_i)\), the constraint would vanish to \(0\). We would have to use linear programming or something.
 
 Compute 
@@ -601,6 +642,8 @@ Compute
 \[\Rightarrow M_i^T M_i w_i = \lambda w_i\]
 
 This is an eigenvector eigenvalue problem and can solve this easily.
+
+
 
 \subsection{Laplacian Eigenmaps}
 \textbf{Graph Laplacian:} Matrix representation of a graph. There are many other ways to do this.
@@ -1035,6 +1078,48 @@ A minimum cut divides a network into two parts \(s, t\), such that the sum of th
 
 A solution to the maximum flow problem is a solution to the minimum cut problem: the minimum cut consists of edges that are fully used in the solution to the max flow problem.
 
+\section{Markov Random Fields (Continued)}
+Energy Function: \(E(\vec{x}) = \sum_i E^i(x_i) + \sum_{i,j} E^{i,j}(x_i, x_j)\) (First unary, second binary potential)
+
+Goal: Find a labeling, i.e., an assignment of values to the hidden variables \(x_1, \dots, x_N\) that minimizes the energy function \(E(x)\).
+
+A quick example application: computing depth maps from stereo vision data. Assume you have two cameras which a perfectly parallel. From disparity (the offset of an object between the two camera images) it is possible to triangulate depth
+
+One approach to find the disparity might be to slied a small ROI around a salient point in one image, and correlate it to a fixed position in the other image. The disparity is the offset between the window positions and both images where the correlation assumes a maximum value (from disparity: triangulate depth \(\rightarrow\) that is our depth label).
+
+However, in the presence of noise, disturbing texture, \(\dots\) it is not advisable to decide for a specific disparity value without considering the seen context.
+
+Computing the correlations for all possible (in our universe) disparities gives us a unariy potential that linkes observed data to disparity lables. For the pairwise potentials, we can again assume that most of the scene has homogeneous depth, and therefore, the pairwise potential \(E^{i,j} (x_i, x_j)\) is a function with a minimum value for labelings \(x_i = x_j\). Note that we overall seek a globally optimal solution. This implies that for example neighboring lables can "override" a wrong (e.g. due to noise) unary potential via the pairwise potentials.
+
+\bigbreak
+
+\underline{Max Flow/Min Cut:}
+
+Max Flow: What is the maximum network throughput from source s to drain t? \(\Rightarrow\) use Ford/Fulkerson, or Preflow-Push
+
+Min Cut: Minimum sum of all edges that lead from s to t that are cut to seperate s from t.
+
+Min Cut is also a standard algorithm that runs in polynomial time.
+
+
+Define: "Graph-representable": A function \(\epsilon (x)\) is graph-representable, if there exists a graph, such that for any configuration \(x\), \(\epsilon(x)\) is equal to the cost of the minimum s-t-cut plus a constant value (which doesnt change for different configurations).
+
+Set \(x_i = 0\) if \(v_i \in S\) (a node is connected to the source), \(x_i=1\) if \(v_i \in \mathcal{T}\) (a node is connected to the drain/sink).
+
+If \(\epsilon\) is graph-representable by \(G\), then we can find an exact minimum of \(\epsilon\) in polynomial time, by computing a minimum s-t-cut on G.
+
+Theorem: Submodular quadratic pseudo-boolean functions are graph-representable.
+
+Submodularity condition on binary label sets: 
+\[E^{i,j} (0, 0) + E^{i,j}(1,1) \leq E^{i,j} (0,1) + E^{i,j} (1,0)\]
+
+We seek to minimize
+\[E(x) = \sum_i E^i(x_i) + \sum_{i,j} E^{i,j} (x_i, x_j)\]
+
+Graph construction:
+See picture
+
+Problem: Find appropriate weights for such a graph.
 \newpage
 \begin{appendices}
 
